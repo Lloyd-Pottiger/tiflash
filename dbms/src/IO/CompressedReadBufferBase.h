@@ -15,6 +15,7 @@
 #pragma once
 
 #include <Common/PODArray.h>
+#include <IO/LZ4_decompress_faster.h>
 
 
 namespace DB
@@ -29,6 +30,7 @@ class CompressedReadBufferBase
 {
 protected:
     ReadBuffer * compressed_in;
+    mutable LZ4::PerformanceStatistics lz4_stat;
 
     /// If 'compressed_in' buffer has whole compressed block - then use it. Otherwise copy parts of data to 'own_compressed_buffer'.
     PODArray<char> own_compressed_buffer;
@@ -47,7 +49,7 @@ protected:
 
 public:
     /// 'compressed_in' could be initialized lazily, but before first call of 'readCompressedData'.
-    CompressedReadBufferBase(ReadBuffer * in = nullptr);
+    explicit CompressedReadBufferBase(ReadBuffer * in = nullptr);
     ~CompressedReadBufferBase();
 
     /** Disable checksums.

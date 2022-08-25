@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <iostream>
+#include <common/logger_useful.h>
 #include <Core/Defines.h>
 #include <Common/Stopwatch.h>
 #include <Common/TargetSpecific.h>
@@ -477,6 +478,7 @@ bool NO_INLINE decompressImpl(
      size_t source_size,
      size_t dest_size)
 {
+    // LOG_DEBUG(&Poco::Logger::get("fastDecompress"), "copy_amount: {}, use_shuffle: {}", copy_amount, use_shuffle);
     const auto * ip = reinterpret_cast<const UInt8 *>(source);
     auto * op = reinterpret_cast<UInt8 *>(dest);
     const UInt8 * const input_end = ip + source_size;
@@ -637,12 +639,13 @@ bool decompress(
     /// Don't run timer if the block is too small.
     if (dest_size >= 32768)
     {
-        size_t variant_size = 4;
+        // size_t variant_size = 4;
 #if defined (__AVX512VBMI__) || defined (__AVX512VL__)
         /// best_variant == 4 only valid when AVX512VBMI or AVX512VL available
         variant_size = 5;
 #endif
-        size_t best_variant = statistics.select(variant_size);
+        // size_t best_variant = statistics.select(variant_size);
+        size_t best_variant = 0;
 
         /// Run the selected method and measure time.
 
@@ -659,11 +662,11 @@ bool decompress(
         if (best_variant == 4)
             success = decompressImpl<32, true>(source, dest, source_size, dest_size);
 
-        watch.stop();
+        // watch.stop();
 
         /// Update performance statistics.
 
-        statistics.data[best_variant].update(watch.elapsedSeconds(), dest_size);
+        // statistics.data[best_variant].update(watch.elapsedSeconds(), dest_size);
 
         return success;
     }

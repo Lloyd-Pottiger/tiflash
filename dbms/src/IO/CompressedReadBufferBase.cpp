@@ -111,7 +111,7 @@ void CompressedReadBufferBase<has_checksum>::decompress(char * to, size_t size_d
     {
         // if (LZ4_decompress_fast(compressed_buffer + COMPRESSED_BLOCK_HEADER_SIZE, to, size_decompressed) < 0)
         //     throw Exception("Cannot LZ4_decompress_fast", ErrorCodes::CANNOT_DECOMPRESS);
-        if (DB::LZ4::decompress(compressed_buffer + COMPRESSED_BLOCK_HEADER_SIZE, to, size_compressed_without_checksum, size_decompressed, lz4_stat) < 0)
+        if (!DB::LZ4::decompress(compressed_buffer + COMPRESSED_BLOCK_HEADER_SIZE, to, size_compressed_without_checksum - COMPRESSED_BLOCK_HEADER_SIZE, size_decompressed, lz4_stat))
             throw Exception("Cannot LZ4_decompress_fast", ErrorCodes::CANNOT_DECOMPRESS);
     }
     else if (method == static_cast<UInt8>(CompressionMethodByte::ZSTD))

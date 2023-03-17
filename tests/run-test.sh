@@ -209,6 +209,7 @@ mysql_client="mysql -u root -P $tidb_port -h $tidb_server -e"
 
 if [ "$fullstack" = true ]; then
 	mysql -u root -P $tidb_port -h $tidb_server -e "create database if not exists $tidb_db"
+	mysql -u root -P $tidb_port -h $tidb_server -e "set global tidb_opt_enable_late_materialization = 1"
 	sleep 10
 	if [ $? != 0 ]; then
 		echo "create database '"$tidb_db"' failed" >&2

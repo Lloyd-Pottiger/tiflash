@@ -19,12 +19,10 @@
 #include <Encryption/BlockAccessCipherStream.h>
 #include <IO/Endian.h>
 #include <common/types.h>
-#include <openssl/aes.h>
 
 namespace DB
 {
 struct EncryptionPath;
-struct FileEncryptionInfo;
 
 class AESCTRCipherStream : public BlockAccessCipherStream
 {
@@ -40,10 +38,6 @@ public:
 
     void encrypt(uint64_t file_offset, char * data, size_t data_size) override;
     void decrypt(uint64_t file_offset, char * data, size_t data_size) override;
-
-    static BlockAccessCipherStreamPtr createCipherStream(
-        const FileEncryptionInfo & encryption_info_,
-        const EncryptionPath & encryption_path_);
 
 private:
     inline void initIV(uint64_t block_index, unsigned char * iv) const;

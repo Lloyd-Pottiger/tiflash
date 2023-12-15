@@ -20,7 +20,7 @@ namespace DB
 {
 CSEDataKeyManager::CSEDataKeyManager(EngineStoreServerWrap * tiflash_instance_wrap_)
     : tiflash_instance_wrap{tiflash_instance_wrap_}
-    , master_key(tiflash_instance_wrap->proxy_helper->getMasterKey())
+    , master_key(std::make_shared<MasterKey>(tiflash_instance_wrap->proxy_helper->getMasterKey()))
 {}
 
 FileEncryptionInfo CSEDataKeyManager::getFile(const String & /*fname*/)

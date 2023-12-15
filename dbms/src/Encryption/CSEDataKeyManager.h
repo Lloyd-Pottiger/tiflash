@@ -17,6 +17,7 @@
 #include <Common/Exception.h>
 #include <Common/TiFlashException.h>
 #include <Encryption/KeyManager.h>
+#include <Encryption/MasterKey.h>
 #include <Poco/Path.h>
 #include <common/likely.h>
 
@@ -44,6 +45,6 @@ public:
 
 private:
     EngineStoreServerWrap * tiflash_instance_wrap;
-    const String master_key;
+    const MasterKeyPtr master_key;
 };
 } // namespace DB

@@ -15,6 +15,7 @@
 #pragma once
 
 #include <Common/CurrentMetrics.h>
+#include <Common/Exception.h>
 #include <Common/Logger.h>
 #include <Storages/BackgroundProcessingPool.h>
 #include <Storages/DeltaMerge/StoragePool_fwd.h>
@@ -173,7 +174,13 @@ public:
 
     PageIdU64 newDataPageIdForDTFile(StableDiskDelegator & delegator, const char * who);
     PageIdU64 newLogPageId() { return ++max_log_page_id; }
-    PageIdU64 newMetaPageId() { return ++max_meta_page_id; }
+    PageIdU64 newMetaPageId()
+    {
+        // Reserve the last page id for encryption key
+        RUNTIME_CHECK_MSG(max_meta_page_id < std::numeric_limits<UInt64>::max(), "meta page id overflow");
+        return ++max_meta_page_id;
+    }
+    static PageIdU64 encryptionKeyPageId() { return std::numeric_limits<UInt64>::max(); }
 
 #ifndef DBMS_PUBLIC_GTEST
 private:

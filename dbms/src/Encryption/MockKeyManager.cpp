@@ -19,7 +19,6 @@
 #include <common/logger_useful.h>
 #include <fmt/core.h>
 
-#include <iostream>
 
 namespace DB
 {
@@ -53,18 +52,20 @@ MockKeyManager::MockKeyManager(
     , logger(DB::Logger::get())
 {}
 
-FileEncryptionInfo MockKeyManager::newFile(const String & fname)
+FileEncryptionInfo MockKeyManager::newFile(const EncryptionPath & ep)
 {
+    const auto & fname = ep.full_path;
     if (encryption_enabled)
     {
         LOG_TRACE(logger, "Create mock encryption [file={}]", fname);
         files.emplace_back(fname);
     }
-    return getFile(fname);
+    return getFile(ep);
 }
 
-void MockKeyManager::deleteFile(const String & fname, bool throw_on_error)
+void MockKeyManager::deleteFile(const EncryptionPath & ep, bool throw_on_error)
 {
+    const auto & fname = ep.full_path;
     std::ignore = throw_on_error;
     if (encryption_enabled)
     {
@@ -84,9 +85,10 @@ void MockKeyManager::deleteFile(const String & fname, bool throw_on_error)
     }
 }
 
-void MockKeyManager::linkFile(const String & src_fname, const String & dst_fname)
+void MockKeyManager::linkFile(const EncryptionPath & src_ep, const EncryptionPath & dst_ep)
 {
-    std::ignore = dst_fname;
+    const auto & src_fname = src_ep.full_path;
+    const auto & dst_fname = dst_ep.full_path;
     if (encryption_enabled)
     {
         if (!fileExist(src_fname))
@@ -118,9 +120,9 @@ bool MockKeyManager::fileExist(const String & fname) const
     return false;
 }
 
-FileEncryptionInfo MockKeyManager::getFile(const String & fname)
+FileEncryptionInfo MockKeyManager::getFile(const EncryptionPath & ep)
 {
-    std::ignore = fname;
+    const auto & fname = ep.full_path;
     if (encryption_enabled)
     {
         auto * file_key = RawCppString::New(key);

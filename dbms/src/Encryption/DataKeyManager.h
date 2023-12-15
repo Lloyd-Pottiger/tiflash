@@ -30,13 +30,13 @@ public:
 
     ~DataKeyManager() override = default;
 
-    FileEncryptionInfo getFile(const String & fname) override;
+    FileEncryptionInfo getFile(const EncryptionPath & ep) override;
 
-    FileEncryptionInfo newFile(const String & fname) override;
+    FileEncryptionInfo newFile(const EncryptionPath & ep) override;
 
-    void deleteFile(const String & fname, bool throw_on_error) override;
+    void deleteFile(const EncryptionPath & ep, bool throw_on_error) override;
 
-    void linkFile(const String & src_fname, const String & dst_fname) override;
+    void linkFile(const EncryptionPath & src_ep, const EncryptionPath & dst_ep) override;
 
 private:
     EngineStoreServerWrap * tiflash_instance_wrap;

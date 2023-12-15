@@ -26,8 +26,8 @@ namespace DB
 class MasterKey
 {
 public:
-    explicit MasterKey(String & master_key_)
-        : master_key(master_key_)
+    explicit MasterKey(String master_key_)
+        : master_key(std::move(master_key_))
     {}
 
     EncryptionKey generateEncryptionKey()

@@ -103,7 +103,6 @@
 
 #include <boost/algorithm/string/classification.hpp>
 #include <ext/scope_guard.h>
-#include <limits>
 #include <magic_enum.hpp>
 #include <memory>
 #include <thread>
@@ -1081,14 +1080,16 @@ int Server::main(const std::vector<std::string> & /*args*/)
     global_context->getSharedContextDisagg()->use_autoscaler = use_autoscaler;
 
     /// Init File Provider
+    // ps_write is a pointer, now it is nullptr, pass it by reference to init CSEDataKeyManager.
+    // After UniversalPageStorage is init, ps_write will point to the UniversalPageStorage.
+    UniversalPageStoragePtr ps_write;
     if (proxy_conf.is_proxy_runnable)
     {
         const bool enable_encryption = tiflash_instance_wrap.proxy_helper->checkEncryptionEnabled();
         if (enable_encryption && storage_config.s3_config.isS3Enabled())
         {
-            // FIXME: implement a specific KeyManager for cloud
             LOG_INFO(log, "encryption can be enabled, method is Aes256Ctr");
-            KeyManagerPtr key_manager = std::make_shared<CSEDataKeyManager>(&tiflash_instance_wrap);
+            KeyManagerPtr key_manager = std::make_shared<CSEDataKeyManager>(&tiflash_instance_wrap, ps_write);
             global_context->initializeFileProvider(key_manager, true);
         }
         else if (enable_encryption)
@@ -1311,6 +1312,7 @@ int Server::main(const std::vector<std::string> & /*args*/)
         global_context->initializeWriteNodePageStorageIfNeed(global_context->getPathPool());
         if (auto wn_ps = global_context->tryGetWriteNodePageStorage(); wn_ps != nullptr)
         {
+            ps_write = wn_ps; // now ps_write point to the UniversalPageStorage
             store_ident = tryGetStoreIdent(wn_ps);
             if (!store_ident)
             {
@@ -1576,7 +1578,7 @@ int Server::main(const std::vector<std::string> & /*args*/)
     }
 
     {
-        TcpHttpServersHolder tcpHttpServersHolder(*this, settings, log);
+        TcpHttpServersHolder tcp_http_servers_holder(*this, settings, log);
 
         main_config_reloader->addConfigObject(global_context->getSecurityConfig());
         main_config_reloader->start();
@@ -1600,7 +1602,7 @@ int Server::main(const std::vector<std::string> & /*args*/)
         SCOPE_EXIT({
             is_cancelled = true;
 
-            tcpHttpServersHolder.onExit();
+            tcp_http_servers_holder.onExit();
 
             main_config_reloader.reset();
             users_config_reloader.reset();

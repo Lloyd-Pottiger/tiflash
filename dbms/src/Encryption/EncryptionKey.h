@@ -63,13 +63,8 @@ public:
     // disallow copy and move, only use as shared_ptr in EncryptionKey
     DISALLOW_COPY_AND_MOVE(EncryptionKeyCore);
 
-    FileEncryptionInfo generateEncryptionInfo(UInt64 iv_high, UInt64 iv_low) const
+    FileEncryptionInfo generateEncryptionInfo(String iv) const
     {
-        iv_high = toBigEndian(iv_high);
-        iv_low = toBigEndian(iv_low);
-        String iv(sizeof(iv_high) + sizeof(iv_low), '\0');
-        memcpy(iv.data(), &iv_high, sizeof(iv_high));
-        memcpy(iv.data() + sizeof(iv_high), &iv_low, sizeof(iv_low));
         return FileEncryptionInfo{
             FileEncryptionRes::Ok,
             EncryptionMethod::Aes256Ctr,
@@ -179,10 +174,7 @@ public:
         core->incRefCount();
     }
 
-    FileEncryptionInfo generateEncryptionInfo(UInt64 iv_high, UInt64 iv_low) const
-    {
-        return core->generateEncryptionInfo(iv_high, iv_low);
-    }
+    FileEncryptionInfo generateEncryptionInfo(String iv) const { return core->generateEncryptionInfo(iv); }
 
     // The destructor will decrease the reference count
     // And the shared_ptr to core will be destroyed.

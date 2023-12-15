@@ -19,6 +19,7 @@
 #include <Encryption/KeyManager.h>
 #include <Encryption/MasterKey.h>
 #include <Poco/Path.h>
+#include <Storages/Page/PageStorage_fwd.h>
 #include <common/likely.h>
 
 namespace DB
@@ -30,21 +31,23 @@ struct EngineStoreServerWrap;
 class CSEDataKeyManager : public KeyManager
 {
 public:
-    explicit CSEDataKeyManager(EngineStoreServerWrap * tiflash_instance_wrap_);
+    explicit CSEDataKeyManager(EngineStoreServerWrap * tiflash_instance_wrap_, UniversalPageStoragePtr & ps_write_);
 
     ~CSEDataKeyManager() override = default;
 
-    FileEncryptionInfo getFile(const String & fname) override;
+    FileEncryptionInfo getFile(const EncryptionPath & ep) override;
 
-    FileEncryptionInfo newFile(const String & fname) override;
+    FileEncryptionInfo newFile(const EncryptionPath & ep) override;
 
-    void deleteFile(const String & fname, bool throw_on_error) override;
+    void deleteFile(const EncryptionPath & ep, bool throw_on_error) override;
 
     // Note: This function will not be used.
-    void linkFile(const String & src_fname, const String & dst_fname) override;
+    void linkFile(const EncryptionPath & src_cp, const EncryptionPath & dst_cp) override;
 
 private:
     EngineStoreServerWrap * tiflash_instance_wrap;
+    // Note: it is a reference of a pointer point to UniversalPageStorage
+    UniversalPageStoragePtr & ps_write;
     const MasterKeyPtr master_key;
 };
 } // namespace DB

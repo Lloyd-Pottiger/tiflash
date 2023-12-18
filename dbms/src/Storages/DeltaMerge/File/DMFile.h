@@ -28,6 +28,7 @@
 #include <Storages/S3/S3Filename.h>
 #include <Storages/S3/S3RandomAccessFile.h>
 #include <common/logger_useful.h>
+
 namespace DB::DM
 {
 class DMFile;
@@ -329,7 +330,7 @@ public:
     }
 
     static String metav2FileName() { return "meta"; }
-    std::vector<String> listFilesForUpload();
+    std::vector<String> listFilesForUpload() const;
     void switchToRemote(const S3::DMFileOID & oid);
 
 #ifndef DBMS_PUBLIC_GTEST
@@ -423,7 +424,7 @@ public:
     static String colMarkFileName(const FileNameBase & file_name_base);
 
     using OffsetAndSize = std::tuple<size_t, size_t>;
-    OffsetAndSize writeMetaToBuffer(WriteBuffer & buffer);
+    OffsetAndSize writeMetaToBuffer(WriteBuffer & buffer) const;
     OffsetAndSize writePackStatToBuffer(WriteBuffer & buffer);
     OffsetAndSize writePackPropertyToBuffer(WriteBuffer & buffer, UnifiedDigestBase * digest = nullptr);
 
@@ -464,10 +465,10 @@ public:
     static constexpr size_t meta_buffer_size = 64 * 1024;
     void finalizeMetaV2(WriteBuffer & buffer);
     MetaBlockHandle writeSLPackStatToBuffer(WriteBuffer & buffer);
-    MetaBlockHandle writeSLPackPropertyToBuffer(WriteBuffer & buffer);
+    MetaBlockHandle writeSLPackPropertyToBuffer(WriteBuffer & buffer) const;
     MetaBlockHandle writeColumnStatToBuffer(WriteBuffer & buffer);
     MetaBlockHandle writeMergedSubFilePosotionsToBuffer(WriteBuffer & buffer);
-    std::vector<char> readMetaV2(const FileProviderPtr & file_provider);
+    std::vector<char> readMetaV2(const FileProviderPtr & file_provider) const;
     void parseMetaV2(std::string_view buffer);
     void parseColumnStat(std::string_view buffer);
     void parseMergedSubFilePos(std::string_view buffer);

@@ -36,7 +36,6 @@
 #include <common/logger_useful.h>
 #include <fmt/format.h>
 
-#include <atomic>
 #include <boost/algorithm/string/classification.hpp>
 #include <filesystem>
 #include <utility>
@@ -322,7 +321,7 @@ String DMFile::colMarkFileName(const FileNameBase & file_name_base)
     return file_name_base + details::MARK_FILE_SUFFIX;
 }
 
-DMFile::OffsetAndSize DMFile::writeMetaToBuffer(WriteBuffer & buffer)
+DMFile::OffsetAndSize DMFile::writeMetaToBuffer(WriteBuffer & buffer) const
 {
     size_t meta_offset = buffer.count();
     writeString("DTFile format: ", buffer);
@@ -850,7 +849,7 @@ DMFile::MetaBlockHandle DMFile::writeSLPackStatToBuffer(WriteBuffer & buffer)
     return MetaBlockHandle{MetaBlockType::PackStat, offset, buffer.count() - offset};
 }
 
-DMFile::MetaBlockHandle DMFile::writeSLPackPropertyToBuffer(WriteBuffer & buffer)
+DMFile::MetaBlockHandle DMFile::writeSLPackPropertyToBuffer(WriteBuffer & buffer) const
 {
     auto offset = buffer.count();
     for (const auto & pb : pack_properties.property())
@@ -924,7 +923,7 @@ void DMFile::finalizeMetaV2(WriteBuffer & buffer)
     writePODBinary(footer, buffer);
 }
 
-std::vector<char> DMFile::readMetaV2(const FileProviderPtr & file_provider)
+std::vector<char> DMFile::readMetaV2(const FileProviderPtr & file_provider) const
 {
     auto rbuf = openForRead(file_provider, metav2Path(), encryptionMetav2Path(), meta_buffer_size);
     std::vector<char> buf(meta_buffer_size);
@@ -1084,7 +1083,7 @@ void DMFile::finalizeDirName()
     old_file.renameTo(new_path);
 }
 
-std::vector<String> DMFile::listFilesForUpload()
+std::vector<String> DMFile::listFilesForUpload() const
 {
     RUNTIME_CHECK(useMetaV2());
     std::vector<String> fnames;

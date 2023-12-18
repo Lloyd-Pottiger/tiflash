@@ -144,7 +144,8 @@ StableValueSpacePtr StableValueSpace::restore(DMContext & dm_context, PageIdU64 
                 file_id,
                 page_id,
                 file_parent_path,
-                DMFile::ReadMetaMode::all());
+                DMFile::ReadMetaMode::all(),
+                dm_context.keyspace_id);
             auto res = path_delegate.updateDTFileSize(file_id, dmfile->getBytesOnDisk());
             RUNTIME_CHECK_MSG(res, "update dt file size failed, path={}", dmfile->path());
         }

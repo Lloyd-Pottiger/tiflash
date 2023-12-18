@@ -59,23 +59,6 @@ public:
         DROPPED,
     };
 
-    static String statusString(Status status)
-    {
-        switch (status)
-        {
-        case WRITABLE:
-            return "WRITABLE";
-        case WRITING:
-            return "WRITING";
-        case READABLE:
-            return "READABLE";
-        case DROPPED:
-            return "DROPPED";
-        default:
-            throw Exception("Unexpected status: " + DB::toString(static_cast<int>(status)));
-        }
-    }
-
     struct ReadMetaMode
     {
     private:
@@ -220,6 +203,7 @@ public:
         DMConfigurationOpt configuration = std::nullopt,
         UInt64 small_file_size_threshold = 128 * 1024,
         UInt64 merged_file_max_size = 16 * 1024 * 1024,
+        KeyspaceID keyspace_id = NullspaceID,
         DMFileFormat::Version = STORAGE_FORMAT_CURRENT.dm_file);
 
     static DMFilePtr restore(
@@ -227,7 +211,8 @@ public:
         UInt64 file_id,
         UInt64 page_id,
         const String & parent_path,
-        const ReadMetaMode & read_meta_mode);
+        const ReadMetaMode & read_meta_mode,
+        KeyspaceID keyspace_id = NullspaceID);
 
     struct ListOptions
     {
@@ -346,9 +331,11 @@ public:
         UInt64 small_file_size_threshold_ = 128 * 1024,
         UInt64 merged_file_max_size_ = 16 * 1024 * 1024,
         DMConfigurationOpt configuration_ = std::nullopt,
-        DMFileFormat::Version version_ = STORAGE_FORMAT_CURRENT.dm_file)
+        DMFileFormat::Version version_ = STORAGE_FORMAT_CURRENT.dm_file,
+        KeyspaceID keyspace_id_ = NullspaceID)
         : file_id(file_id_)
         , page_id(page_id_)
+        , keyspace_id(keyspace_id_)
         , parent_path(std::move(parent_path_))
         , status(status_)
         , configuration(std::move(configuration_))
@@ -485,6 +472,8 @@ public:
     UInt64 file_id;
     // It is the page_id that represent this file in the PageStorage. It could be the same as file id.
     UInt64 page_id;
+    // The id of the keyspace that this file belongs to.
+    KeyspaceID keyspace_id;
     String parent_path;
 
     PackStats pack_stats;

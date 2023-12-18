@@ -120,6 +120,7 @@ DMFilePtr DMFile::create(
     DMConfigurationOpt configuration,
     UInt64 small_file_size_threshold,
     UInt64 merged_file_max_size,
+    KeyspaceID keyspace_id,
     DMFileFormat::Version version)
 {
     // if small_file_size_threshold == 0 we should use DMFileFormat::V2
@@ -142,7 +143,8 @@ DMFilePtr DMFile::create(
         small_file_size_threshold,
         merged_file_max_size,
         std::move(configuration),
-        version));
+        version,
+        keyspace_id));
 
     auto path = new_dmfile->path();
     Poco::File file(path);
@@ -167,7 +169,8 @@ DMFilePtr DMFile::restore(
     UInt64 file_id,
     UInt64 page_id,
     const String & parent_path,
-    const ReadMetaMode & read_meta_mode)
+    const ReadMetaMode & read_meta_mode,
+    KeyspaceID keyspace_id)
 {
     auto is_s3_file = S3::S3FilenameView::fromKeyWithPrefix(parent_path).isDataFile();
     if (!is_s3_file)
@@ -181,7 +184,7 @@ DMFilePtr DMFile::restore(
             return nullptr;
     }
 
-    DMFilePtr dmfile(new DMFile(file_id, page_id, parent_path, Status::READABLE));
+    DMFilePtr dmfile(new DMFile(file_id, page_id, parent_path, Status::READABLE, keyspace_id));
     if (is_s3_file || Poco::File(dmfile->metav2Path()).exists())
     {
         auto s = dmfile->readMetaV2(file_provider);
@@ -646,7 +649,7 @@ void DMFile::finalizeForFolderMode(const FileProviderPtr & file_provider, const 
     }
     writeMetadata(file_provider, write_limiter);
     if (unlikely(status != Status::WRITING))
-        throw Exception("Expected WRITING status, now " + statusString(status));
+        throw Exception(ErrorCodes::LOGICAL_ERROR, "Expected WRITING status, now {}", magic_enum::enum_name(status));
     Poco::File old_file(path());
     setStatus(Status::READABLE);
 
@@ -1065,7 +1068,7 @@ void DMFile::finalizeDirName()
         status == Status::WRITING,
         "FileId={} Expected WRITING status, but {}",
         file_id,
-        statusString(status));
+        magic_enum::enum_name(status));
     Poco::File old_file(path());
     setStatus(Status::READABLE);
     auto new_path = path();

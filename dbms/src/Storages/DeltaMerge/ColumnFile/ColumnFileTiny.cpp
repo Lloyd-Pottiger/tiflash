@@ -308,6 +308,8 @@ PageIdU64 ColumnFileTiny::writeColumnFileData(
         col_data_sizes.push_back(serialized_size);
     }
 
+    // const auto & context = dm_context.global_context.getFileProvider()->isFileEncrypted();
+
     auto data_size = write_buf.count();
     auto buf = write_buf.tryGetReadBuffer();
     wbs.log.putPage(page_id, 0, buf, data_size, col_data_sizes);

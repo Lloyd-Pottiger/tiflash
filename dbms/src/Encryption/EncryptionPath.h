@@ -15,9 +15,13 @@
 #pragma once
 
 #include <common/types.h>
+#include <pingcap/pd/IClient.h>
+
 
 namespace DB
 {
+
+using KeyspaceID = pingcap::pd::KeyspaceID;
 
 /// 1. In OP, we use tikv proxy, all encryption info are stored in one file called file.dict.
 /// Every update of file.dict will sync the whole file.
@@ -26,8 +30,8 @@ namespace DB
 /// For security reason, the same `iv` is not allowed to encrypt two different files,
 /// so we combine the `iv` fetched from file.dict with the hash value of the file name to calculate the real `iv` for every file.
 /// 2. In cloud, we use cse proxy, all encryption info are stored in page storage.
-/// Each keyspace has only a encryption info.
-/// We will use full_path and file_name to generate `iv`.
+/// Each keyspace has only a encryption info. We will use full_path and file_name to generate `iv`.
+/// Note: If no keyspace_id is specified, the EncryptionPath will generate a empty FileEncryptionInfo which will generate empty AESCTRCipherStream.
 struct EncryptionPath
 {
     EncryptionPath(const String & full_path_, const String & file_name_)
@@ -35,7 +39,7 @@ struct EncryptionPath
         , file_name{file_name_}
     {}
 
-    EncryptionPath(const String & full_path_, const String & file_name_, UInt32 keyspace_id_)
+    EncryptionPath(const String & full_path_, const String & file_name_, KeyspaceID keyspace_id_)
         : full_path{full_path_}
         , file_name{file_name_}
         , keyspace_id{keyspace_id_}
@@ -46,7 +50,7 @@ struct EncryptionPath
     const String full_path;
     const String file_name;
     // The id of the keyspace which the file belongs to.
-    const UInt32 keyspace_id = 0;
+    const KeyspaceID keyspace_id = pingcap::pd::NullspaceID;
 };
 
 } // namespace DB

@@ -177,10 +177,13 @@ public:
     PageIdU64 newMetaPageId()
     {
         // Reserve the last page id for encryption key
-        RUNTIME_CHECK_MSG(max_meta_page_id < std::numeric_limits<UInt64>::max(), "meta page id overflow");
+        RUNTIME_CHECK_MSG( // NOLINT
+            ns_id < std::numeric_limits<UInt64>::max() || max_meta_page_id < std::numeric_limits<UInt64>::max(),
+            "ns_id {}, page_id {} are reserved for keyspace encryption key",
+            ns_id,
+            max_meta_page_id);
         return ++max_meta_page_id;
     }
-    static PageIdU64 encryptionKeyPageId() { return std::numeric_limits<UInt64>::max(); }
 
 #ifndef DBMS_PUBLIC_GTEST
 private:

@@ -31,6 +31,9 @@ struct EngineStoreServerWrap;
 class CSEDataKeyManager : public KeyManager
 {
 public:
+    static constexpr UInt64 ENCRYPTION_KEY_RESERVED_NAMESPACE_ID = std::numeric_limits<UInt64>::max();
+    static constexpr UInt64 ENCRYPTION_KEY_RESERVED_PAGEU64_ID = std::numeric_limits<UInt64>::max();
+
     explicit CSEDataKeyManager(EngineStoreServerWrap * tiflash_instance_wrap_, UniversalPageStoragePtr & ps_write_);
 
     ~CSEDataKeyManager() override = default;
@@ -44,10 +47,17 @@ public:
     // Note: This function will not be used.
     void linkFile(const EncryptionPath & src_cp, const EncryptionPath & dst_cp) override;
 
+    // get the keyspace encryption key
+    std::optional<EncryptionKey> getKey(KeyspaceID keyspace_id);
+    // delete the keyspace encryption key
+    void deleteKey(KeyspaceID keyspace_id);
+
 private:
     EngineStoreServerWrap * tiflash_instance_wrap;
     // Note: it is a reference of a pointer point to UniversalPageStorage
     UniversalPageStoragePtr & ps_write;
+    // cache, keyspace_id -> encryption_key
+    std::unordered_map<KeyspaceID, EncryptionKey> keyspace_id_to_key;
     const MasterKeyPtr master_key;
 };
 } // namespace DB

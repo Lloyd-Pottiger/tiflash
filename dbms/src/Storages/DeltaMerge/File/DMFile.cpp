@@ -268,47 +268,47 @@ String DMFile::encryptionBasePath() const
 
 EncryptionPath DMFile::encryptionDataPath(const FileNameBase & file_name_base) const
 {
-    return EncryptionPath(encryptionBasePath(), file_name_base + details::DATA_FILE_SUFFIX);
+    return EncryptionPath(encryptionBasePath(), file_name_base + details::DATA_FILE_SUFFIX, keyspace_id);
 }
 
 EncryptionPath DMFile::encryptionIndexPath(const FileNameBase & file_name_base) const
 {
-    return EncryptionPath(encryptionBasePath(), file_name_base + details::INDEX_FILE_SUFFIX);
+    return EncryptionPath(encryptionBasePath(), file_name_base + details::INDEX_FILE_SUFFIX, keyspace_id);
 }
 
 EncryptionPath DMFile::encryptionMarkPath(const FileNameBase & file_name_base) const
 {
-    return EncryptionPath(encryptionBasePath(), file_name_base + details::MARK_FILE_SUFFIX);
+    return EncryptionPath(encryptionBasePath(), file_name_base + details::MARK_FILE_SUFFIX, keyspace_id);
 }
 
 EncryptionPath DMFile::encryptionMetaPath() const
 {
-    return EncryptionPath(encryptionBasePath(), metaFileName());
+    return EncryptionPath(encryptionBasePath(), metaFileName(), keyspace_id);
 }
 
 EncryptionPath DMFile::encryptionPackStatPath() const
 {
-    return EncryptionPath(encryptionBasePath(), packStatFileName());
+    return EncryptionPath(encryptionBasePath(), packStatFileName(), keyspace_id);
 }
 
 EncryptionPath DMFile::encryptionPackPropertyPath() const
 {
-    return EncryptionPath(encryptionBasePath(), packPropertyFileName());
+    return EncryptionPath(encryptionBasePath(), packPropertyFileName(), keyspace_id);
 }
 
 EncryptionPath DMFile::encryptionConfigurationPath() const
 {
-    return EncryptionPath(encryptionBasePath(), configurationFileName());
+    return EncryptionPath(encryptionBasePath(), configurationFileName(), keyspace_id);
 }
 
 EncryptionPath DMFile::encryptionMetav2Path() const
 {
-    return EncryptionPath(encryptionBasePath(), metav2FileName());
+    return EncryptionPath(encryptionBasePath(), metav2FileName(), keyspace_id);
 }
 
 EncryptionPath DMFile::encryptionMergedPath(UInt32 number) const
 {
-    return EncryptionPath(encryptionBasePath(), mergedFilename(number));
+    return EncryptionPath(encryptionBasePath(), mergedFilename(number), keyspace_id);
 }
 
 String DMFile::colDataFileName(const FileNameBase & file_name_base)

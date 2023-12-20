@@ -34,14 +34,13 @@
 #include <common/logger_useful.h>
 #include <fiu.h>
 
-#include <future>
 #include <mutex>
-#include <unordered_map>
-#include <unordered_set>
 
 
 namespace DB
 {
+using PS::V3::PageTypeConfig;
+
 UniversalPageStoragePtr UniversalPageStorage::create(
     const String & name,
     PSDiskDelegatorPtr delegator,

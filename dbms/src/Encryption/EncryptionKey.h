@@ -113,10 +113,6 @@ public:
         return String(buffer.data(), buffer.size());
     }
 
-    UInt32 getRefCount() const { return refCount.load(std::memory_order_relaxed); }
-    void incRefCount() { refCount.fetch_add(1, std::memory_order_relaxed); }
-    void decRefCount() { refCount.fetch_sub(1, std::memory_order_relaxed); }
-
 private:
     // encrypted<plain_text>, encrypted by master key
     // The text stored in disk.
@@ -127,41 +123,19 @@ private:
     String current_key;
     // The version of current key
     UInt32 current_ver = 0;
-    // The reference count of the key
-    std::atomic<UInt32> refCount = 0;
 };
 } // namespace
 
 class EncryptionKey
 {
 private:
-    // EncryptionKey only contains a shared_ptr to EncryptionKeyCore, which is quite light-weight.
-    // Several EncryptionKey can share the same EncryptionKeyCore instance,
-    // if there are several pointers to the same EncryptionKey,
-    // the reference count of the EncryptionKeyCore instance will be hard to maintain.
-    // So disallow heap allocation
-    static void * operator new(size_t);
-    static void * operator new[](size_t);
-
     explicit EncryptionKey(const std::shared_ptr<EncryptionKeyCore> & core_)
         : core(core_)
-    {
-        core->incRefCount();
-    }
+    {}
 
 public:
     static constexpr UInt32 KEY_LENGTH = 64;
     static constexpr UInt32 EXPORT_KEY_LENGTH = 1 + 4 + KEY_LENGTH; // encryption_method + version + key
-
-    DISALLOW_MOVE(EncryptionKey);
-
-    // copy constructor will copy the shared_ptr and increase the reference count
-    // so the two EncryptionKey will share the same EncryptionKeyCore instance and the reference count will +1
-    EncryptionKey(const EncryptionKey & other)
-        : core(other.core)
-    {
-        core->incRefCount();
-    }
 
     EncryptionKey(String cipher_text_, String plain_text_, UInt32 current_ver_)
     {
@@ -171,16 +145,11 @@ public:
             std::move(plain_text_),
             current_key,
             current_ver_);
-        core->incRefCount();
     }
 
     FileEncryptionInfo generateEncryptionInfo(String iv) const { return core->generateEncryptionInfo(iv); }
 
-    // The destructor will decrease the reference count
-    // And the shared_ptr to core will be destroyed.
-    // When the reference count is 0, means no EncryptionKey is using the EncryptionKeyCore instance,
-    // so the EncryptionKeyCore instance will be destroyed.
-    ~EncryptionKey() { core->decRefCount(); }
+    ~EncryptionKey() = default;
 
     // return the key of the given version
     EncryptionKey setVersion(UInt32 new_ver) const { return EncryptionKey(core->setVersion(new_ver)); }

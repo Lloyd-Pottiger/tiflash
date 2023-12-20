@@ -89,6 +89,8 @@ public:
 
     bool isEncryptionEnabled() const;
 
+    
+
     // `renameFile` includes two steps,
     // 1. rename encryption info
     // 2. rename file

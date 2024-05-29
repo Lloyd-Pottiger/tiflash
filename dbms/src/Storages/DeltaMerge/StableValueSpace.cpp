@@ -95,7 +95,13 @@ UInt64 StableValueSpace::serializeMetaToBuf(WriteBuffer & buf) const
         writeIntBinary(valid_bytes, buf);
         writeIntBinary(static_cast<UInt64>(files.size()), buf);
         for (const auto & f : files)
+        {
+            RUNTIME_CHECK_MSG(
+                f->metaVersion() == 0,
+                "StableFormat::V1 cannot persist meta_version={}",
+                f->metaVersion());
             writeIntBinary(f->pageId(), buf);
+        }
     }
     else if (STORAGE_FORMAT_CURRENT.stable == StableFormat::V2)
     {
@@ -103,7 +109,11 @@ UInt64 StableValueSpace::serializeMetaToBuf(WriteBuffer & buf) const
         meta.set_valid_rows(valid_rows);
         meta.set_valid_bytes(valid_bytes);
         for (const auto & f : files)
-            meta.add_files()->set_page_id(f->pageId());
+        {
+            auto * mf = meta.add_files();
+            mf->set_page_id(f->pageId());
+            mf->set_meta_version(f->metaVersion());
+        }
 
         auto data = meta.SerializeAsString();
         writeStringBinary(data, buf);
@@ -184,6 +194,8 @@ StableValueSpacePtr StableValueSpace::restore(DMContext & dm_context, ReadBuffer
     for (int i = 0; i < metapb.files().size(); ++i)
     {
         UInt64 page_id = metapb.files(i).page_id();
+        UInt64 meta_version = metapb.files(i).meta_version();
+
         DMFilePtr dmfile;
         auto path_delegate = dm_context.path_pool->getStableDiskDelegator();
         if (remote_data_store)
@@ -203,7 +215,7 @@ StableValueSpacePtr StableValueSpace::restore(DMContext & dm_context, ReadBuffer
             RUNTIME_CHECK(file_oid.keyspace_id == dm_context.keyspace_id);
             RUNTIME_CHECK(file_oid.table_id == dm_context.physical_table_id);
             auto prepared = remote_data_store->prepareDMFile(file_oid, page_id);
-            dmfile = prepared->restore(DMFileMeta::ReadMode::all());
+            dmfile = prepared->restore(DMFileMeta::ReadMode::all(), meta_version);
             // gc only begin to run after restore so we can safely call addRemoteDTFileIfNotExists here
             path_delegate.addRemoteDTFileIfNotExists(local_external_id, dmfile->getBytesOnDisk());
         }
@@ -217,6 +229,7 @@ StableValueSpacePtr StableValueSpace::restore(DMContext & dm_context, ReadBuffer
                 page_id,
                 file_parent_path,
                 DMFileMeta::ReadMode::all(),
+                meta_version,
                 dm_context.keyspace_id);
             auto res = path_delegate.updateDTFileSize(file_id, dmfile->getBytesOnDisk());
             RUNTIME_CHECK_MSG(res, "update dt file size failed, path={}", dmfile->path());
@@ -251,6 +264,8 @@ StableValueSpacePtr StableValueSpace::createFromCheckpoint( //
     for (int i = 0; i < metapb.files().size(); ++i)
     {
         UInt64 page_id = metapb.files(i).page_id();
+        UInt64 meta_version = metapb.files(i).meta_version();
+
         auto full_page_id = UniversalPageIdFormat::toFullPageId(
             UniversalPageIdFormat::toFullPrefix(
                 dm_context.keyspace_id,
@@ -270,7 +285,7 @@ StableValueSpacePtr StableValueSpace::createFromCheckpoint( //
         };
         wbs.data.putRemoteExternal(new_local_page_id, loc);
         auto prepared = remote_data_store->prepareDMFile(file_oid, new_local_page_id);
-        auto dmfile = prepared->restore(DMFileMeta::ReadMode::all());
+        auto dmfile = prepared->restore(DMFileMeta::ReadMode::all(), meta_version);
         wbs.writeLogAndData();
         // new_local_page_id is already applied to PageDirectory so we can safely call addRemoteDTFileIfNotExists here
         delegator.addRemoteDTFileIfNotExists(new_local_page_id, dmfile->getBytesOnDisk());

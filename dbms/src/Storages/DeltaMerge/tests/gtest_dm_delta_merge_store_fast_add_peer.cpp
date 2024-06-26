@@ -157,7 +157,7 @@ public:
 
         ColumnDefine handle_column_define = (*cols)[0];
 
-        DeltaMergeStorePtr s = std::make_shared<DeltaMergeStore>(
+        DeltaMergeStorePtr s = DeltaMergeStore::create(
             *db_context,
             false,
             "test",
@@ -169,6 +169,7 @@ public:
             handle_column_define,
             is_common_handle,
             rowkey_column_size,
+            nullptr,
             DeltaMergeStore::Settings());
         return s;
     }

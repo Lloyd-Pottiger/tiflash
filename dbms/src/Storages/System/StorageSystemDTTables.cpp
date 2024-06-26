@@ -38,6 +38,7 @@ StorageSystemDTTables::StorageSystemDTTables(const std::string & name_)
         {"tidb_database", std::make_shared<DataTypeString>()},
         {"tidb_table", std::make_shared<DataTypeString>()},
         {"table_id", std::make_shared<DataTypeInt64>()},
+        {"belonging_table_id", std::make_shared<DataTypeInt64>()},
         {"is_tombstone", std::make_shared<DataTypeUInt64>()},
 
         {"segment_count", std::make_shared<DataTypeUInt64>()},
@@ -152,6 +153,7 @@ BlockInputStreams StorageSystemDTTables::read(
             String tidb_table_name = mapper.displayTableName(table_info);
             res_columns[j++]->insert(tidb_table_name);
             res_columns[j++]->insert(table_id);
+            res_columns[j++]->insert(table_info.belonging_table_id);
             res_columns[j++]->insert(dm_storage->getTombstone());
 
             res_columns[j++]->insert(stat.segment_count);

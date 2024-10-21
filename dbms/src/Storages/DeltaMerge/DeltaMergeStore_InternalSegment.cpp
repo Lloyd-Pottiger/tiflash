@@ -927,7 +927,7 @@ bool DeltaMergeStore::segmentEnsureDeltaLocalIndexAsync(const SegmentPtr & segme
     }
 }
 
-bool DeltaMergeStore::segmentWaitDeltaIndexReady(const SegmentPtr & segment) const
+bool DeltaMergeStore::segmentWaitDeltaLocalIndexReady(const SegmentPtr & segment) const
 {
     RUNTIME_CHECK(segment != nullptr);
 

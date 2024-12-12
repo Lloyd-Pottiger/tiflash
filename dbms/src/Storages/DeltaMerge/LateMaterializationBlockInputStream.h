@@ -14,9 +14,10 @@
 
 #pragma once
 
-#include <DataStreams/IBlockInputStream.h>
+#include <DataStreams/IProfilingBlockInputStream.h>
 #include <Storages/DeltaMerge/BitmapFilter/BitmapFilter.h>
 #include <Storages/DeltaMerge/DeltaMergeDefines.h>
+#include <Storages/DeltaMerge/ScanContext.h>
 #include <Storages/DeltaMerge/SkippableBlockInputStream.h>
 
 namespace DB::DM
@@ -36,10 +37,11 @@ public:
     LateMaterializationBlockInputStream(
         const ColumnDefines & columns_to_read,
         const String & filter_column_name_,
-        BlockInputStreamPtr filter_column_stream_,
+        ProfilingBlockInputStreamPtr filter_column_stream_,
         SkippableBlockInputStreamPtr rest_column_stream_,
         const BitmapFilterPtr & bitmap_filter_,
-        const String & req_id_);
+        const String & req_id_,
+        const ScanContextPtr & scan_context_ = nullptr);
 
     String getName() const override { return NAME; }
 
@@ -47,19 +49,27 @@ public:
 
     Block read() override;
 
+    ~LateMaterializationBlockInputStream() override
+    {
+        if (scan_context)
+            scan_context->dmfile_lm_filter_time_ns += filter_column_stream->getProfileInfo().execution_time;
+    }
+
 private:
     Block header;
     // The name of the tmp filter column in filter_column_block which is added by the FilterBlockInputStream.
     // The column is used to filter the block, but it is not included in the returned block.
     const String & filter_column_name;
     // The stream used to read the filter column, and filter the block.
-    BlockInputStreamPtr filter_column_stream;
+    ProfilingBlockInputStreamPtr filter_column_stream;
     // The stream used to read the rest columns.
     SkippableBlockInputStreamPtr rest_column_stream;
     // The MVCC-bitmap.
     BitmapFilterPtr bitmap_filter;
 
     const LoggerPtr log;
+
+    const ScanContextPtr & scan_context;
 };
 
 } // namespace DB::DM

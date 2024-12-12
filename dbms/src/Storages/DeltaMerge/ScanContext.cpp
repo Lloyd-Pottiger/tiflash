@@ -102,6 +102,7 @@ String ScanContext::toJson() const
     json->set("dmfile_mvcc_skipped_rows", dmfile_mvcc_skipped_rows.load());
     json->set("dmfile_lm_filter_scanned_rows", dmfile_lm_filter_scanned_rows.load());
     json->set("dmfile_lm_filter_skipped_rows", dmfile_lm_filter_skipped_rows.load());
+    json->set("dmfile_lm_filter_time_ns", fmt::format("{:.3f}ms", dmfile_lm_filter_time_ns.load() / NS_TO_MS_SCALE));
     json->set("dmfile_read_time", fmt::format("{:.3f}ms", total_dmfile_read_time_ns.load() / NS_TO_MS_SCALE));
 
     json->set(

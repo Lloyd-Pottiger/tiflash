@@ -49,16 +49,18 @@ void filterFilterColumnBlock(
 LateMaterializationBlockInputStream::LateMaterializationBlockInputStream(
     const ColumnDefines & columns_to_read,
     const String & filter_column_name_,
-    BlockInputStreamPtr filter_column_stream_,
+    ProfilingBlockInputStreamPtr filter_column_stream_,
     SkippableBlockInputStreamPtr rest_column_stream_,
     const BitmapFilterPtr & bitmap_filter_,
-    const String & req_id_)
+    const String & req_id_,
+    const ScanContextPtr & scan_context_)
     : header(toEmptyBlock(columns_to_read))
     , filter_column_name(filter_column_name_)
     , filter_column_stream(std::move(filter_column_stream_))
     , rest_column_stream(std::move(rest_column_stream_))
     , bitmap_filter(bitmap_filter_)
     , log(Logger::get(NAME, req_id_))
+    , scan_context(scan_context_)
 {}
 
 Block LateMaterializationBlockInputStream::read()

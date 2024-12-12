@@ -3407,12 +3407,12 @@ BlockInputStreamPtr Segment::getLateMaterializationStream(
     }
 
     // construct filter stream
-    filter_column_stream = std::make_shared<FilterBlockInputStream>(
+    ProfilingBlockInputStreamPtr profiling_filter_column_stream = std::make_shared<FilterBlockInputStream>(
         filter_column_stream,
         filter->before_where,
         filter->filter_column_name,
         dm_context.tracing_id);
-    filter_column_stream->setExtraInfo("push down filter");
+    profiling_filter_column_stream->setExtraInfo("push down filter");
 
     auto rest_columns_to_read = std::make_shared<ColumnDefines>(columns_to_read);
     // remove columns of pushed down filter
@@ -3442,10 +3442,11 @@ BlockInputStreamPtr Segment::getLateMaterializationStream(
     return std::make_shared<LateMaterializationBlockInputStream>(
         columns_to_read,
         filter->filter_column_name,
-        filter_column_stream,
+        profiling_filter_column_stream,
         rest_column_stream,
         bitmap_filter,
-        dm_context.tracing_id);
+        dm_context.tracing_id,
+        dm_context.scan_context);
 }
 
 RowKeyRanges Segment::shrinkRowKeyRanges(const RowKeyRanges & read_ranges) const

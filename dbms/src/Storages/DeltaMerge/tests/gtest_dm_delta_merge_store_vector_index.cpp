@@ -24,6 +24,8 @@
 #include <Storages/KVStore/Types.h>
 #include <TestUtils/InputStreamTestUtils.h>
 
+#include <variant>
+
 namespace DB::FailPoints
 {
 extern const char force_local_index_task_memory_limit_exceeded[];
@@ -783,9 +785,11 @@ try
         ASSERT_EQ(index.type, IndexType::Vector);
         ASSERT_EQ(index.index_id, EmptyIndexID);
         ASSERT_EQ(index.column_id, vec_column_id);
-        ASSERT_EQ(index.index_definition->kind, tipb::VectorIndexKind::HNSW);
-        ASSERT_EQ(index.index_definition->dimension, 1);
-        ASSERT_EQ(index.index_definition->distance_metric, tipb::VectorDistanceMetric::L2);
+        ASSERT_TRUE(std::holds_alternative<TiDB::VectorIndexDefinitionPtr>(index.index_definition));
+        const auto & vec_index_def = std::get<TiDB::VectorIndexDefinitionPtr>(index.index_definition);
+        ASSERT_EQ(vec_index_def->kind, tipb::VectorIndexKind::HNSW);
+        ASSERT_EQ(vec_index_def->dimension, 1);
+        ASSERT_EQ(vec_index_def->distance_metric, tipb::VectorDistanceMetric::L2);
     }
 
     const size_t num_rows_write = 128;
@@ -820,9 +824,11 @@ try
         ASSERT_EQ(index.type, IndexType::Vector);
         ASSERT_EQ(index.index_id, EmptyIndexID);
         ASSERT_EQ(index.column_id, vec_column_id);
-        ASSERT_EQ(index.index_definition->kind, tipb::VectorIndexKind::HNSW);
-        ASSERT_EQ(index.index_definition->dimension, 1);
-        ASSERT_EQ(index.index_definition->distance_metric, tipb::VectorDistanceMetric::L2);
+        ASSERT_TRUE(std::holds_alternative<TiDB::VectorIndexDefinitionPtr>(index.index_definition));
+        const auto & vec_index_def = std::get<TiDB::VectorIndexDefinitionPtr>(index.index_definition);
+        ASSERT_EQ(vec_index_def->kind, tipb::VectorIndexKind::HNSW);
+        ASSERT_EQ(vec_index_def->dimension, 1);
+        ASSERT_EQ(vec_index_def->distance_metric, tipb::VectorDistanceMetric::L2);
     }
 
     const auto range = RowKeyRange::newAll(store->is_common_handle, store->rowkey_column_size);
@@ -890,7 +896,7 @@ try
         index_col_info.name = VectorIndexTestUtils::vec_column_name;
         index_col_info.offset = 0;
         index.idx_cols.emplace_back(index_col_info);
-        index.vector_index = TiDB::VectorIndexDefinitionPtr(new TiDB::VectorIndexDefinition{
+        index.index_definition = TiDB::VectorIndexDefinitionPtr(new TiDB::VectorIndexDefinition{
             .kind = tipb::VectorIndexKind::HNSW,
             .dimension = 1,
             .distance_metric = tipb::VectorDistanceMetric::L2,
@@ -986,7 +992,7 @@ try
     index_col_info.name = VectorIndexTestUtils::vec_column_name;
     index_col_info.offset = 0;
     index.idx_cols.emplace_back(index_col_info);
-    index.vector_index = TiDB::VectorIndexDefinitionPtr(new TiDB::VectorIndexDefinition{
+    index.index_definition = TiDB::VectorIndexDefinitionPtr(new TiDB::VectorIndexDefinition{
         .kind = tipb::VectorIndexKind::HNSW,
         .dimension = 1,
         .distance_metric = tipb::VectorDistanceMetric::L2,
@@ -1039,7 +1045,7 @@ try
     index_col_info.name = VectorIndexTestUtils::vec_column_name;
     index_col_info.offset = 0;
     index.idx_cols.emplace_back(index_col_info);
-    index.vector_index = TiDB::VectorIndexDefinitionPtr(new TiDB::VectorIndexDefinition{
+    index.index_definition = TiDB::VectorIndexDefinitionPtr(new TiDB::VectorIndexDefinition{
         .kind = tipb::VectorIndexKind::HNSW,
         .dimension = 1,
         .distance_metric = tipb::VectorDistanceMetric::L2,

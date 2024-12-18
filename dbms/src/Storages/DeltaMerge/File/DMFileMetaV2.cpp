@@ -424,10 +424,13 @@ UInt32 DMFileMetaV2::bumpMetaVersion(DMFileMetaChangeset && changeset)
         auto changed_col_iter = changeset.new_indexes_on_cols.find(col_id);
         if (changed_col_iter == changeset.new_indexes_on_cols.end())
             continue;
-        col_stat.vector_index.insert(
-            col_stat.vector_index.end(),
-            changed_col_iter->second.begin(),
-            changed_col_iter->second.end());
+        for (const auto & new_index : changed_col_iter->second)
+        {
+            if (std::holds_alternative<dtpb::VectorIndexFileProps>(new_index))
+                col_stat.vector_index.emplace_back(std::get<dtpb::VectorIndexFileProps>(new_index));
+            else if (std::holds_alternative<dtpb::InvertedIndexFileProps>(new_index))
+                col_stat.inverted_index = std::get<dtpb::InvertedIndexFileProps>(new_index);
+        }
     }
 
     // bump the version

@@ -17,10 +17,10 @@
 #include <Storages/DeltaMerge/DeltaMergeDefines.h>
 #include <Storages/DeltaMerge/File/DMFile.h>
 #include <Storages/DeltaMerge/File/DMFileBlockInputStream.h>
+#include <Storages/DeltaMerge/File/DMFileLocalIndexWriter.h>
 #include <Storages/DeltaMerge/File/DMFileV3IncrementWriter.h>
-#include <Storages/DeltaMerge/File/DMFileVectorIndexWriter.h>
+#include <Storages/DeltaMerge/Index/LocalIndexBuilder.h>
 #include <Storages/DeltaMerge/Index/LocalIndexInfo.h>
-#include <Storages/DeltaMerge/Index/VectorIndex.h>
 #include <Storages/DeltaMerge/ScanContext.h>
 #include <Storages/DeltaMerge/dtpb/dmfile.pb.h>
 #include <Storages/PathPool.h>
@@ -40,16 +40,34 @@ extern const char exception_build_local_index_for_file[];
 namespace DB::DM
 {
 
-LocalIndexBuildInfo DMFileVectorIndexWriter::getLocalIndexBuildInfo(
+namespace
+{
+
+size_t estimateIndexMemoryBytes(const LocalIndexInfo & index_info, size_t data_bytes)
+{
+    static constexpr double VECTOR_INDEX_SIZE_FACTOR = 1.2;
+    static constexpr double INVERTED_INDEX_SIZE_FACTOR = 1.5;
+    switch (index_info.type)
+    {
+    case IndexType::Vector:
+        return data_bytes * VECTOR_INDEX_SIZE_FACTOR;
+    case IndexType::Inverted:
+        return data_bytes * INVERTED_INDEX_SIZE_FACTOR;
+    }
+    __builtin_unreachable();
+}
+
+} // namespace
+
+LocalIndexBuildInfo DMFileLocalIndexWriter::getLocalIndexBuildInfo(
     const LocalIndexInfosSnapshot & index_infos,
     const DMFiles & dm_files)
 {
     assert(index_infos != nullptr);
-    static constexpr double VECTOR_INDEX_SIZE_FACTOR = 1.2;
 
-    // TODO(vector-index): Now we only generate the build info when new index is added.
+    // TODO(local-index): Now we only generate the build info when new index is added.
     //    The built indexes will be dropped (lazily) after the segment instance is updated.
-    //    We can support dropping the vector index more quickly later.
+    //    We can support dropping the local index more quickly later.
     LocalIndexBuildInfo build;
     build.indexes_to_build = std::make_shared<LocalIndexInfos>();
     build.dm_files.reserve(dm_files.size());
@@ -71,7 +89,7 @@ LocalIndexBuildInfo DMFileVectorIndexWriter::getLocalIndexBuildInfo(
                 any_new_index_build = true;
 
                 build.indexes_to_build->emplace_back(index);
-                build.estimated_memory_bytes += data_bytes * VECTOR_INDEX_SIZE_FACTOR;
+                build.estimated_memory_bytes += estimateIndexMemoryBytes(index, data_bytes);
                 break;
             }
             }
@@ -85,8 +103,7 @@ LocalIndexBuildInfo DMFileVectorIndexWriter::getLocalIndexBuildInfo(
     return build;
 }
 
-size_t DMFileVectorIndexWriter::buildIndexForFile(const DMFilePtr & dm_file_mutable, ProceedCheckFn should_proceed)
-    const
+size_t DMFileLocalIndexWriter::buildIndexForFile(const DMFilePtr & dm_file_mutable, ProceedCheckFn should_proceed) const
 {
     const auto column_defines = dm_file_mutable->getColumnDefines();
     const auto del_cd_iter = std::find_if(column_defines.cbegin(), column_defines.cend(), [](const ColumnDefine & cd) {
@@ -103,12 +120,12 @@ size_t DMFileVectorIndexWriter::buildIndexForFile(const DMFilePtr & dm_file_muta
     ColumnDefines read_columns{*del_cd_iter};
     read_columns.reserve(options.index_infos->size() + 1);
 
-    std::unordered_map<ColId, std::vector<VectorIndexBuilderPtr>> index_builders;
+    std::unordered_map<ColId, std::vector<LocalIndexBuilderPtr>> index_builders;
 
     std::unordered_map<ColId, std::vector<LocalIndexInfo>> col_indexes;
     for (const auto & index_info : *options.index_infos)
     {
-        if (index_info.type != IndexType::Vector)
+        if (index_info.type != IndexType::Vector && index_info.type != IndexType::Inverted)
             continue;
         col_indexes[index_info.column_id].emplace_back(index_info);
     }
@@ -132,8 +149,7 @@ size_t DMFileVectorIndexWriter::buildIndexForFile(const DMFilePtr & dm_file_muta
                 !dm_file_mutable->isLocalIndexExist(idx_info.column_id, idx_info.index_id),
                 idx_info.column_id,
                 idx_info.index_id);
-            index_builders[col_id].emplace_back(
-                VectorIndexBuilder::create(idx_info.index_id, idx_info.index_definition));
+            index_builders[col_id].emplace_back(LocalIndexBuilder::create(idx_info));
         }
         read_columns.push_back(*cd_iter);
     }
@@ -198,7 +214,7 @@ size_t DMFileVectorIndexWriter::buildIndexForFile(const DMFilePtr & dm_file_muta
 
     // Write down the index
     size_t total_built_index_bytes = 0;
-    std::unordered_map<ColId, std::vector<dtpb::VectorIndexFileProps>> new_indexes_on_cols;
+    std::unordered_map<ColId, std::vector<LocalIndexFilePros>> new_indexes_on_cols;
     for (size_t col_idx = 1; col_idx < num_cols; ++col_idx)
     {
         const auto & cd = read_columns[col_idx];
@@ -208,24 +224,19 @@ size_t DMFileVectorIndexWriter::buildIndexForFile(const DMFilePtr & dm_file_muta
                 || IDataType::isStringSizes(substream_path))
                 return;
 
-            std::vector<dtpb::VectorIndexFileProps> new_indexes;
+            std::vector<LocalIndexFilePros> new_indexes;
             for (const auto & index_builder : index_builders[cd.id])
             {
-                const IndexID index_id = index_builder->index_id;
+                const IndexID index_id = index_builder->index_info.index_id;
                 const auto index_file_name = index_id > 0
-                    ? dm_file_mutable->vectorIndexFileName(index_id)
+                    ? dm_file_mutable->localIndexFileName(index_builder->index_info)
                     : colIndexFileName(DMFile::getFileNameBase(cd.id, substream_path));
                 const auto index_path = iw->localPath() + "/" + index_file_name;
                 index_builder->saveToFile(index_path);
 
-                // Memorize what kind of vector index it is, so that we can correctly restore it when reading.
-                dtpb::VectorIndexFileProps pb_idx;
-                pb_idx.set_index_kind(tipb::VectorIndexKind_Name(index_builder->definition->kind));
-                pb_idx.set_distance_metric(tipb::VectorDistanceMetric_Name(index_builder->definition->distance_metric));
-                pb_idx.set_dimensions(index_builder->definition->dimension);
-                pb_idx.set_index_id(index_id);
+                // Memorize what kind of local index it is, so that we can correctly restore it when reading.
                 auto index_bytes = Poco::File(index_path).getSize();
-                pb_idx.set_index_bytes(index_bytes);
+                auto pb_idx = indexDefinitionToFileProps(index_builder->index_info, index_bytes);
                 new_indexes.emplace_back(std::move(pb_idx));
 
                 total_built_index_bytes += index_bytes;
@@ -244,7 +255,7 @@ size_t DMFileVectorIndexWriter::buildIndexForFile(const DMFilePtr & dm_file_muta
     return total_built_index_bytes;
 }
 
-DMFiles DMFileVectorIndexWriter::build(ProceedCheckFn should_proceed) const
+DMFiles DMFileLocalIndexWriter::build(ProceedCheckFn should_proceed) const
 {
     RUNTIME_CHECK(!built);
     // Create a clone of existing DMFile instances by using DMFile::restore,

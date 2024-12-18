@@ -132,17 +132,18 @@ SegmentReadTask::SegmentReadTask(
                 remote_page_ids.emplace_back(tiny->getDataPageId());
                 remote_page_sizes.emplace_back(tiny->getDataPageSize());
                 ++count;
-                // Add vector index pages.
+                // Add local index pages.
                 if (auto index_infos = tiny->getIndexInfos(); index_infos)
                 {
                     for (const auto & index_info : *index_infos)
                     {
-                        if (index_info.vector_index)
-                        {
-                            remote_page_ids.emplace_back(index_info.index_page_id);
-                            remote_page_sizes.emplace_back(index_info.vector_index->index_bytes());
-                            ++count;
-                        }
+                        std::visit(
+                            [&](const auto & index_pros) {
+                                remote_page_ids.emplace_back(index_info.index_page_id);
+                                remote_page_sizes.emplace_back(index_pros.index_bytes());
+                                ++count;
+                            },
+                            index_info.index_pros);
                     }
                 }
             }

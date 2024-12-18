@@ -60,7 +60,7 @@ try
     {
         expect_idx.id = 1;
         expect_idx.idx_cols.emplace_back(default_index_col_info);
-        expect_idx.vector_index = TiDB::VectorIndexDefinitionPtr(new TiDB::VectorIndexDefinition{
+        expect_idx.index_definition = TiDB::VectorIndexDefinitionPtr(new TiDB::VectorIndexDefinition{
             .kind = tipb::VectorIndexKind::HNSW,
             .dimension = 1,
             .distance_metric = tipb::VectorDistanceMetric::L2,
@@ -111,13 +111,14 @@ try
     {
         expect_idx.id = 1;
         expect_idx.idx_cols.emplace_back(default_index_col_info);
-        expect_idx.vector_index = TiDB::VectorIndexDefinitionPtr(new TiDB::VectorIndexDefinition{
+        expect_idx.index_definition = TiDB::VectorIndexDefinitionPtr(new TiDB::VectorIndexDefinition{
             .kind = tipb::VectorIndexKind::HNSW,
             .dimension = 1,
             .distance_metric = tipb::VectorDistanceMetric::L2,
         });
         table_info.index_infos.emplace_back(expect_idx);
     }
+    const auto & expect_idx_def = std::get<TiDB::VectorIndexDefinitionPtr>(expect_idx.index_definition);
 
     // check the different
     {
@@ -128,10 +129,12 @@ try
         ASSERT_EQ(IndexType::Vector, idx.type);
         ASSERT_EQ(expect_idx.id, idx.index_id);
         ASSERT_EQ(100, idx.column_id);
-        ASSERT_NE(nullptr, idx.index_definition);
-        ASSERT_EQ(expect_idx.vector_index->kind, idx.index_definition->kind);
-        ASSERT_EQ(expect_idx.vector_index->dimension, idx.index_definition->dimension);
-        ASSERT_EQ(expect_idx.vector_index->distance_metric, idx.index_definition->distance_metric);
+        ASSERT_TRUE(std::holds_alternative<TiDB::VectorIndexDefinitionPtr>(idx.index_definition));
+        const auto & idx_def = std::get<TiDB::VectorIndexDefinitionPtr>(idx.index_definition);
+        ASSERT_NE(nullptr, idx_def);
+        ASSERT_EQ(expect_idx_def->kind, idx_def->kind);
+        ASSERT_EQ(expect_idx_def->dimension, idx_def->dimension);
+        ASSERT_EQ(expect_idx_def->distance_metric, idx_def->distance_metric);
 
         // check again, nothing changed, return nullptr
         ASSERT_EQ(nullptr, generateLocalIndexInfos(new_index_info, table_info, logger).new_local_index_infos);
@@ -145,13 +148,15 @@ try
     {
         expect_idx2.id = 2; // another index_id
         expect_idx2.idx_cols.emplace_back(default_index_col_info);
-        expect_idx2.vector_index = TiDB::VectorIndexDefinitionPtr(new TiDB::VectorIndexDefinition{
+        expect_idx2.index_definition = TiDB::VectorIndexDefinitionPtr(new TiDB::VectorIndexDefinition{
             .kind = tipb::VectorIndexKind::HNSW,
             .dimension = 2,
             .distance_metric = tipb::VectorDistanceMetric::COSINE, // another distance
         });
         table_info.index_infos.emplace_back(expect_idx2);
     }
+    const auto & expect_idx2_def = std::get<TiDB::VectorIndexDefinitionPtr>(expect_idx2.index_definition);
+
     // check the different
     {
         auto new_index_info = generateLocalIndexInfos(index_info, table_info, logger).new_local_index_infos;
@@ -161,18 +166,22 @@ try
         ASSERT_EQ(IndexType::Vector, idx0.type);
         ASSERT_EQ(expect_idx.id, idx0.index_id);
         ASSERT_EQ(100, idx0.column_id);
-        ASSERT_NE(nullptr, idx0.index_definition);
-        ASSERT_EQ(expect_idx.vector_index->kind, idx0.index_definition->kind);
-        ASSERT_EQ(expect_idx.vector_index->dimension, idx0.index_definition->dimension);
-        ASSERT_EQ(expect_idx.vector_index->distance_metric, idx0.index_definition->distance_metric);
+        ASSERT_TRUE(std::holds_alternative<TiDB::VectorIndexDefinitionPtr>(idx0.index_definition));
+        const auto & idx0_def = std::get<TiDB::VectorIndexDefinitionPtr>(idx0.index_definition);
+        ASSERT_NE(nullptr, idx0_def);
+        ASSERT_EQ(expect_idx_def->kind, idx0_def->kind);
+        ASSERT_EQ(expect_idx_def->dimension, idx0_def->dimension);
+        ASSERT_EQ(expect_idx_def->distance_metric, idx0_def->distance_metric);
         const auto & idx1 = (*new_index_info)[1];
         ASSERT_EQ(IndexType::Vector, idx1.type);
         ASSERT_EQ(expect_idx2.id, idx1.index_id);
         ASSERT_EQ(100, idx1.column_id);
-        ASSERT_NE(nullptr, idx1.index_definition);
-        ASSERT_EQ(expect_idx2.vector_index->kind, idx1.index_definition->kind);
-        ASSERT_EQ(expect_idx2.vector_index->dimension, idx1.index_definition->dimension);
-        ASSERT_EQ(expect_idx2.vector_index->distance_metric, idx1.index_definition->distance_metric);
+        ASSERT_TRUE(std::holds_alternative<TiDB::VectorIndexDefinitionPtr>(idx1.index_definition));
+        const auto & idx1_def = std::get<TiDB::VectorIndexDefinitionPtr>(idx1.index_definition);
+        ASSERT_NE(nullptr, idx1_def);
+        ASSERT_EQ(expect_idx2_def->kind, idx1_def->kind);
+        ASSERT_EQ(expect_idx2_def->dimension, idx1_def->dimension);
+        ASSERT_EQ(expect_idx2_def->distance_metric, idx1_def->distance_metric);
 
         // check again, nothing changed, return nullptr
         ASSERT_EQ(nullptr, generateLocalIndexInfos(new_index_info, table_info, logger).new_local_index_infos);
@@ -189,13 +198,15 @@ try
         // add a new index
         expect_idx3.id = 3; // another index_id
         expect_idx3.idx_cols.emplace_back(default_index_col_info);
-        expect_idx3.vector_index = TiDB::VectorIndexDefinitionPtr(new TiDB::VectorIndexDefinition{
+        expect_idx3.index_definition = TiDB::VectorIndexDefinitionPtr(new TiDB::VectorIndexDefinition{
             .kind = tipb::VectorIndexKind::HNSW,
             .dimension = 3,
             .distance_metric = tipb::VectorDistanceMetric::COSINE, // another distance
         });
         table_info.index_infos.emplace_back(expect_idx3);
     }
+    const auto & expect_idx3_def = std::get<TiDB::VectorIndexDefinitionPtr>(expect_idx3.index_definition);
+
     // check the different
     {
         auto new_index_info = generateLocalIndexInfos(index_info, table_info, logger).new_local_index_infos;
@@ -205,18 +216,22 @@ try
         ASSERT_EQ(IndexType::Vector, idx0.type);
         ASSERT_EQ(expect_idx.id, idx0.index_id);
         ASSERT_EQ(100, idx0.column_id);
-        ASSERT_NE(nullptr, idx0.index_definition);
-        ASSERT_EQ(expect_idx.vector_index->kind, idx0.index_definition->kind);
-        ASSERT_EQ(expect_idx.vector_index->dimension, idx0.index_definition->dimension);
-        ASSERT_EQ(expect_idx.vector_index->distance_metric, idx0.index_definition->distance_metric);
+        ASSERT_TRUE(std::holds_alternative<TiDB::VectorIndexDefinitionPtr>(idx0.index_definition));
+        const auto & idx0_def = std::get<TiDB::VectorIndexDefinitionPtr>(idx0.index_definition);
+        ASSERT_NE(nullptr, idx0_def);
+        ASSERT_EQ(expect_idx_def->kind, idx0_def->kind);
+        ASSERT_EQ(expect_idx_def->dimension, idx0_def->dimension);
+        ASSERT_EQ(expect_idx_def->distance_metric, idx0_def->distance_metric);
         const auto & idx1 = (*new_index_info)[1];
         ASSERT_EQ(IndexType::Vector, idx1.type);
         ASSERT_EQ(expect_idx3.id, idx1.index_id);
         ASSERT_EQ(100, idx1.column_id);
-        ASSERT_NE(nullptr, idx1.index_definition);
-        ASSERT_EQ(expect_idx3.vector_index->kind, idx1.index_definition->kind);
-        ASSERT_EQ(expect_idx3.vector_index->dimension, idx1.index_definition->dimension);
-        ASSERT_EQ(expect_idx3.vector_index->distance_metric, idx1.index_definition->distance_metric);
+        ASSERT_TRUE(std::holds_alternative<TiDB::VectorIndexDefinitionPtr>(idx1.index_definition));
+        const auto & idx1_def = std::get<TiDB::VectorIndexDefinitionPtr>(idx1.index_definition);
+        ASSERT_NE(nullptr, idx1_def);
+        ASSERT_EQ(expect_idx3_def->kind, idx1_def->kind);
+        ASSERT_EQ(expect_idx3_def->dimension, idx1_def->dimension);
+        ASSERT_EQ(expect_idx3_def->distance_metric, idx1_def->distance_metric);
 
         // check again, nothing changed, return nullptr
         ASSERT_EQ(nullptr, generateLocalIndexInfos(new_index_info, table_info, logger).new_local_index_infos);

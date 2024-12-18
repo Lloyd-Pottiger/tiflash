@@ -48,7 +48,7 @@ ColumnID getVectorIndxColumnID(
     const TiDB::IndexInfo & idx_info,
     const LoggerPtr & logger)
 {
-    if (!idx_info.vector_index)
+    if (std::holds_alternative<TiDB::InvalidIndexDefinitionPtr>(idx_info.index_definition))
         return EmptyColumnID;
 
     // Vector Index requires a specific storage format to work.
@@ -81,6 +81,32 @@ ColumnID getVectorIndxColumnID(
         idx_info.id,
         idx_info.idx_cols[0].name);
     return EmptyColumnID;
+}
+
+LocalIndexFilePros indexDefinitionToFileProps(const LocalIndexInfo & index_info, size_t index_size)
+{
+    switch (index_info.type)
+    {
+    case IndexType::Vector:
+    {
+        dtpb::VectorIndexFileProps pb_idx;
+        const auto & definition = std::get<TiDB::VectorIndexDefinitionPtr>(index_info.index_definition);
+        pb_idx.set_index_kind(tipb::VectorIndexKind_Name(definition->kind));
+        pb_idx.set_distance_metric(tipb::VectorDistanceMetric_Name(definition->distance_metric));
+        pb_idx.set_dimensions(definition->dimension);
+        pb_idx.set_index_id(index_info.index_id);
+        pb_idx.set_index_bytes(index_size);
+        return pb_idx;
+    }
+    case IndexType::Inverted:
+    {
+        dtpb::InvertedIndexFileProps pb_idx;
+        pb_idx.set_index_id(index_info.index_id);
+        pb_idx.set_index_bytes(index_size);
+        return pb_idx;
+    }
+    }
+    __builtin_unreachable();
 }
 
 LocalIndexInfosPtr initLocalIndexInfos(const TiDB::TableInfo & table_info, const LoggerPtr & logger)
@@ -125,7 +151,7 @@ LocalIndexInfosChangeset generateLocalIndexInfos(
 
     for (const auto & idx : new_table_info.index_infos)
     {
-        if (!idx.vector_index)
+        if (std::holds_alternative<TiDB::InvalidIndexDefinitionPtr>(idx.index_definition))
             continue;
 
         const auto column_id = getVectorIndxColumnID(new_table_info, idx, logger);
@@ -137,12 +163,7 @@ LocalIndexInfosChangeset generateLocalIndexInfos(
             if (idx.state == TiDB::StatePublic || idx.state == TiDB::StateWriteReorganization)
             {
                 // create a new index
-                new_index_infos->emplace_back(LocalIndexInfo{
-                    .type = IndexType::Vector,
-                    .index_id = idx.id,
-                    .column_id = column_id,
-                    .index_definition = idx.vector_index,
-                });
+                new_index_infos->emplace_back(LocalIndexInfo{idx.id, column_id, idx.index_definition});
                 newly_added.emplace_back(idx.id);
                 index_ids_in_new_table.emplace(idx.id);
             }

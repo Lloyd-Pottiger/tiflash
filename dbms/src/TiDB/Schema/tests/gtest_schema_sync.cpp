@@ -42,6 +42,7 @@
 #include <ext/scope_guard.h>
 #include <limits>
 #include <memory>
+#include <variant>
 
 namespace DB
 {
@@ -827,10 +828,12 @@ try
     for (const auto & idx : idx_infos)
     {
         ASSERT_EQ(idx.id, idx_id);
-        ASSERT_NE(idx.vector_index, nullptr);
-        ASSERT_EQ(idx.vector_index->kind, vector_index->kind);
-        ASSERT_EQ(idx.vector_index->dimension, vector_index->dimension);
-        ASSERT_EQ(idx.vector_index->distance_metric, vector_index->distance_metric);
+        ASSERT_TRUE(std::holds_alternative<TiDB::VectorIndexDefinitionPtr>(idx.index_definition));
+        const auto & idx_def = std::get<TiDB::VectorIndexDefinitionPtr>(idx.index_definition);
+        ASSERT_NE(idx_def, nullptr);
+        ASSERT_EQ(idx_def->kind, vector_index->kind);
+        ASSERT_EQ(idx_def->dimension, vector_index->dimension);
+        ASSERT_EQ(idx_def->distance_metric, vector_index->distance_metric);
     }
 
     // test read with ANN query after add a vector index
@@ -889,11 +892,13 @@ try
         ASSERT_EQ(idx_infos.size(), 1);
         for (const auto & idx : idx_infos)
         {
-            if (idx.vector_index)
+            if (std::holds_alternative<TiDB::VectorIndexDefinitionPtr>(idx.index_definition))
             {
-                ASSERT_EQ(idx.vector_index->kind, vector_index->kind);
-                ASSERT_EQ(idx.vector_index->dimension, vector_index->dimension);
-                ASSERT_EQ(idx.vector_index->distance_metric, vector_index->distance_metric);
+                const auto & idx_def = std::get<TiDB::VectorIndexDefinitionPtr>(idx.index_definition);
+                ASSERT_NE(idx_def, nullptr);
+                ASSERT_EQ(idx_def->kind, vector_index->kind);
+                ASSERT_EQ(idx_def->dimension, vector_index->dimension);
+                ASSERT_EQ(idx_def->distance_metric, vector_index->distance_metric);
             }
         }
     }
@@ -962,10 +967,12 @@ try
     for (const auto & idx : idx_infos)
     {
         ASSERT_EQ(idx.id, idx_id);
-        ASSERT_NE(idx.vector_index, nullptr);
-        ASSERT_EQ(idx.vector_index->kind, vector_index->kind);
-        ASSERT_EQ(idx.vector_index->dimension, vector_index->dimension);
-        ASSERT_EQ(idx.vector_index->distance_metric, vector_index->distance_metric);
+        ASSERT_TRUE(std::holds_alternative<TiDB::VectorIndexDefinitionPtr>(idx.index_definition));
+        const auto & idx_def = std::get<TiDB::VectorIndexDefinitionPtr>(idx.index_definition);
+        ASSERT_NE(idx_def, nullptr);
+        ASSERT_EQ(idx_def->kind, vector_index->kind);
+        ASSERT_EQ(idx_def->dimension, vector_index->dimension);
+        ASSERT_EQ(idx_def->distance_metric, vector_index->distance_metric);
     }
 }
 CATCH
@@ -1016,10 +1023,12 @@ try
     for (const auto & idx : idx_infos)
     {
         ASSERT_EQ(idx.id, idx_id);
-        ASSERT_NE(idx.vector_index, nullptr);
-        ASSERT_EQ(idx.vector_index->kind, vector_index->kind);
-        ASSERT_EQ(idx.vector_index->dimension, vector_index->dimension);
-        ASSERT_EQ(idx.vector_index->distance_metric, vector_index->distance_metric);
+        ASSERT_TRUE(std::holds_alternative<TiDB::VectorIndexDefinitionPtr>(idx.index_definition));
+        const auto & idx_def = std::get<TiDB::VectorIndexDefinitionPtr>(idx.index_definition);
+        ASSERT_NE(idx_def, nullptr);
+        ASSERT_EQ(idx_def->kind, vector_index->kind);
+        ASSERT_EQ(idx_def->dimension, vector_index->dimension);
+        ASSERT_EQ(idx_def->distance_metric, vector_index->distance_metric);
     }
 }
 CATCH

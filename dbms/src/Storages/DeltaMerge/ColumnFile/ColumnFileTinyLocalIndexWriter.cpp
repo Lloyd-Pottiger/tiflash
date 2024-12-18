@@ -14,8 +14,8 @@
 
 #include <IO/Compression/CompressedWriteBuffer.h>
 #include <Storages/DeltaMerge/ColumnFile/ColumnFileTiny.h>
+#include <Storages/DeltaMerge/ColumnFile/ColumnFileTinyLocalIndexWriter.h>
 #include <Storages/DeltaMerge/ColumnFile/ColumnFileTinyReader.h>
-#include <Storages/DeltaMerge/ColumnFile/ColumnFileTinyVectorIndexWriter.h>
 #include <Storages/DeltaMerge/Index/VectorIndex.h>
 #include <Storages/DeltaMerge/dtpb/dmfile.pb.h>
 
@@ -28,7 +28,7 @@ extern const int ABORTED;
 namespace DB::DM
 {
 
-ColumnFileTinyVectorIndexWriter::LocalIndexBuildInfo ColumnFileTinyVectorIndexWriter::getLocalIndexBuildInfo(
+ColumnFileTinyLocalIndexWriter::LocalIndexBuildInfo ColumnFileTinyLocalIndexWriter::getLocalIndexBuildInfo(
     const LocalIndexInfosSnapshot & index_infos,
     const ColumnFilePersistedSetPtr & file_set)
 {
@@ -78,7 +78,7 @@ ColumnFileTinyVectorIndexWriter::LocalIndexBuildInfo ColumnFileTinyVectorIndexWr
     return build;
 }
 
-ColumnFileTinyPtr ColumnFileTinyVectorIndexWriter::buildIndexForFile(
+ColumnFileTinyPtr ColumnFileTinyLocalIndexWriter::buildIndexForFile(
     const ColumnDefines & column_defines,
     const ColumnDefine & del_cd,
     const ColumnFileTiny * file,
@@ -91,12 +91,12 @@ ColumnFileTinyPtr ColumnFileTinyVectorIndexWriter::buildIndexForFile(
     read_columns->reserve(options.index_infos->size() + 1);
     read_columns->push_back(del_cd);
 
-    std::unordered_map<ColId, std::vector<VectorIndexBuilderPtr>> index_builders;
+    std::unordered_map<ColId, std::vector<LocalIndexBuilderPtr>> index_builders;
 
     std::unordered_map<ColId, std::vector<LocalIndexInfo>> col_indexes;
     for (const auto & index_info : *options.index_infos)
     {
-        if (index_info.type != IndexType::Vector)
+        if (index_info.type != IndexType::Vector && index_info.type != IndexType::Inverted)
             continue;
         col_indexes[index_info.column_id].emplace_back(index_info);
     }
@@ -120,8 +120,7 @@ ColumnFileTinyPtr ColumnFileTinyVectorIndexWriter::buildIndexForFile(
             if (file->hasIndex(idx_info.index_id))
                 continue;
 
-            index_builders[col_id].emplace_back(
-                VectorIndexBuilder::create(idx_info.index_id, idx_info.index_definition));
+            index_builders[col_id].emplace_back(LocalIndexBuilder::create(idx_info));
         }
         read_columns->push_back(*cd_iter);
     }
@@ -175,19 +174,17 @@ ColumnFileTinyPtr ColumnFileTinyVectorIndexWriter::buildIndexForFile(
             CompressedWriteBuffer compressed(write_buf);
             index_builder->saveToBuffer(compressed);
             compressed.next();
-            auto data_size = write_buf.count();
+            auto compressed_size = write_buf.count();
+            // Write the uncompressed size to the tail of the page.
+            auto uncompressed = compressed.getUncompressedBytes();
+            write_buf.write(reinterpret_cast<const char *>(&uncompressed), sizeof(uncompressed));
+            auto total_size = write_buf.count();
             auto buf = write_buf.tryGetReadBuffer();
-            // ColumnFileDataProviderRNLocalPageCache currently does not support read data with fields
-            options.wbs.log.putPage(index_page_id, 0, buf, data_size, {data_size});
+            // {compressed_index_data, uncompressed_size}
+            options.wbs.log.putPage(index_page_id, 0, buf, total_size, {compressed_size, sizeof(uncompressed)});
 
-            dtpb::VectorIndexFileProps vector_index;
-            vector_index.set_index_id(index_builder->index_id);
-            vector_index.set_index_bytes(data_size);
-            vector_index.set_index_kind(tipb::VectorIndexKind_Name(index_builder->definition->kind));
-            vector_index.set_distance_metric(
-                tipb::VectorDistanceMetric_Name(index_builder->definition->distance_metric));
-            vector_index.set_dimensions(index_builder->definition->dimension);
-            index_infos->emplace_back(index_page_id, vector_index);
+            auto index_pros = indexDefinitionToFileProps(index_builder->index_info, total_size);
+            index_infos->emplace_back(index_page_id, index_pros);
         }
     }
 
@@ -200,7 +197,7 @@ ColumnFileTinyPtr ColumnFileTinyVectorIndexWriter::buildIndexForFile(
     return file->cloneWith(file->getDataPageId(), index_infos);
 }
 
-ColumnFileTinys ColumnFileTinyVectorIndexWriter::build(ProceedCheckFn should_proceed) const
+ColumnFileTinys ColumnFileTinyLocalIndexWriter::build(ProceedCheckFn should_proceed) const
 {
     ColumnFileTinys new_files;
     new_files.reserve(options.files.size());

@@ -14,14 +14,17 @@
 
 #pragma once
 
+#include <Storages/DeltaMerge/dtpb/dmfile.pb.h>
 #include <Storages/KVStore/Types.h>
-#include <TiDB/Schema/VectorIndex.h>
+#include <TiDB/Schema/LocalIndex.h>
 
 namespace TiDB
 {
 struct TableInfo;
 struct ColumnInfo;
 struct IndexInfo;
+struct VectorIndexDefinition;
+using VectorIndexDefinitionPtr = std::shared_ptr<const VectorIndexDefinition>;
 } // namespace TiDB
 
 namespace DB
@@ -31,26 +34,41 @@ using LoggerPtr = std::shared_ptr<Logger>;
 } // namespace DB
 namespace DB::DM
 {
+
 enum class IndexType
 {
     Vector = 1,
+    Inverted = 2,
 };
+
+using LocalIndexFilePros = std::variant<dtpb::VectorIndexFileProps, dtpb::InvertedIndexFileProps>;
 
 struct LocalIndexInfo
 {
+    LocalIndexInfo(IndexID index_id_, ColumnID column_id_, TiDB::LocalIndexDefinitionPtr index_definition_)
+        : index_id(index_id_)
+        , column_id(column_id_)
+        , index_definition(index_definition_)
+    {
+        if (std::holds_alternative<TiDB::VectorIndexDefinitionPtr>(index_definition))
+            type = IndexType::Vector;
+        else if (std::holds_alternative<TiDB::InvertedIndexDefinitionPtr>(index_definition))
+            type = IndexType::Inverted;
+    }
+
     IndexType type;
     // If the index is defined on TiDB::ColumnInfo, use EmptyIndexID as index_id
     IndexID index_id = DB::EmptyIndexID;
     // Which column_id the index is built on
     ColumnID column_id = DB::EmptyColumnID;
-    // Now we only support vector index.
-    // In the future, we may support more types of indexes, using std::variant.
-    TiDB::VectorIndexDefinitionPtr index_definition;
+    TiDB::LocalIndexDefinitionPtr index_definition;
 };
 
 using LocalIndexInfos = std::vector<LocalIndexInfo>;
 using LocalIndexInfosPtr = std::shared_ptr<LocalIndexInfos>;
 using LocalIndexInfosSnapshot = std::shared_ptr<const LocalIndexInfos>;
+
+LocalIndexFilePros indexDefinitionToFileProps(const LocalIndexInfo & index_info, size_t index_size);
 
 LocalIndexInfosPtr initLocalIndexInfos(const TiDB::TableInfo & table_info, const LoggerPtr & logger);
 

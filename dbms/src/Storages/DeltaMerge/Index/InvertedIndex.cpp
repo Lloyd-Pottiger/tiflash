@@ -29,6 +29,7 @@
 namespace DB::ErrorCodes
 {
 extern const int ABORTED;
+extern const int BAD_ARGUMENTS;
 } // namespace DB::ErrorCodes
 
 
@@ -122,6 +123,52 @@ void deserializeMeta(Meta<T> & meta, ReadBuffer & read_buf)
 
 } // namespace InvertedIndex
 
+LocalIndexBuilderPtr createInvertedIndexBuilder(const LocalIndexInfo & index_info)
+{
+    if (!std::holds_alternative<TiDB::InvertedIndexDefinitionPtr>(index_info.index_definition))
+        throw Exception(ErrorCodes::BAD_ARGUMENTS, "InvertedIndexDefinition is not set");
+
+    const auto & definition = std::get<TiDB::InvertedIndexDefinitionPtr>(index_info.index_definition);
+    if (!definition)
+        throw Exception(ErrorCodes::BAD_ARGUMENTS, "InvertedIndexDefinition is null");
+
+    if (definition->type_size == sizeof(UInt8) && !definition->is_signed)
+    {
+        return std::make_shared<InvertedIndexBuilder<UInt8>>(index_info);
+    }
+    else if (definition->type_size == sizeof(Int8) && definition->is_signed)
+    {
+        return std::make_shared<InvertedIndexBuilder<Int8>>(index_info);
+    }
+    else if (definition->type_size == sizeof(UInt16) && !definition->is_signed)
+    {
+        return std::make_shared<InvertedIndexBuilder<UInt16>>(index_info);
+    }
+    else if (definition->type_size == sizeof(Int16) && definition->is_signed)
+    {
+        return std::make_shared<InvertedIndexBuilder<Int16>>(index_info);
+    }
+    else if (definition->type_size == sizeof(UInt32) && !definition->is_signed)
+    {
+        return std::make_shared<InvertedIndexBuilder<UInt32>>(index_info);
+    }
+    else if (definition->type_size == sizeof(Int32) && definition->is_signed)
+    {
+        return std::make_shared<InvertedIndexBuilder<Int32>>(index_info);
+    }
+    else if (definition->type_size == sizeof(UInt64) && !definition->is_signed)
+    {
+        return std::make_shared<InvertedIndexBuilder<UInt64>>(index_info);
+    }
+    else if (definition->type_size == sizeof(Int64) && definition->is_signed)
+    {
+        return std::make_shared<InvertedIndexBuilder<Int64>>(index_info);
+    }
+    else
+    {
+        throw Exception(ErrorCodes::BAD_ARGUMENTS, "Unsupported type size {}", definition->type_size);
+    }
+}
 
 template <typename T>
 bool InvertedIndexBuilder<T>::isSupportedType(const IDataType & type)

@@ -24,6 +24,7 @@
 #include <Storages/DeltaMerge/File/ColumnStat.h>
 #include <Storages/DeltaMerge/File/DMFileUtil.h>
 #include <Storages/DeltaMerge/File/MergedFile.h>
+#include <Storages/DeltaMerge/Index/LocalIndexInfo.h>
 #include <Storages/DeltaMerge/dtpb/dmfile.pb.h>
 #include <common/types.h>
 
@@ -42,7 +43,7 @@ class DMFileV3IncrementWriter;
 
 struct DMFileMetaChangeset
 {
-    std::unordered_map<ColId, std::vector<dtpb::VectorIndexFileProps>> new_indexes_on_cols;
+    std::unordered_map<ColId, std::vector<LocalIndexFilePros>> new_indexes_on_cols;
 };
 
 class DMFileMeta

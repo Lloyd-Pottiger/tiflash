@@ -883,9 +883,9 @@ try
     json->set("is_invisible", is_invisible);
     json->set("is_global", is_global);
 
-    if (vector_index)
+    if (std::holds_alternative<VectorIndexDefinitionPtr>(index_definition))
     {
-        json->set("vector_index", vectorIndexToJSON(vector_index));
+        json->set("vector_index", vectorIndexToJSON(std::get<VectorIndexDefinitionPtr>(index_definition)));
     }
 
 #ifndef NDEBUG
@@ -931,7 +931,7 @@ try
 
     if (auto vector_index_json = json->getObject("vector_index"); vector_index_json)
     {
-        vector_index = parseVectorIndexFromJSON(static_cast<IndexType>(index_type), vector_index_json);
+        index_definition = parseVectorIndexFromJSON(static_cast<IndexType>(index_type), vector_index_json);
     }
 }
 catch (const Poco::Exception & e)
@@ -1061,7 +1061,9 @@ try
                 // always put the primary_index at the front of all index_info
                 index_infos.insert(index_infos.begin(), std::move(index_info));
             }
-            else if (index_info.vector_index != nullptr)
+
+            if (std::holds_alternative<VectorIndexDefinitionPtr>(index_info.index_definition)
+                || std::holds_alternative<InvertedIndexDefinitionPtr>(index_info.index_definition))
             {
                 index_infos.emplace_back(std::move(index_info));
             }

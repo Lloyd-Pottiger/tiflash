@@ -63,8 +63,16 @@ void ColumnFileTiny::serializeMetadata(dtpb::ColumnFilePersisted * cf_pb, bool s
     {
         auto * index_pb = tiny_pb->add_indexes();
         index_pb->set_index_page_id(index_info.index_page_id);
-        if (index_info.vector_index.has_value())
-            index_pb->mutable_vector_index()->CopyFrom(*index_info.vector_index);
+        if (std::holds_alternative<dtpb::VectorIndexFileProps>(index_info.index_pros))
+        {
+            const auto & index_pros = std::get<dtpb::VectorIndexFileProps>(index_info.index_pros);
+            index_pb->mutable_vector_index()->CopyFrom(index_pros);
+        }
+        else if (std::holds_alternative<dtpb::InvertedIndexFileProps>(index_info.index_pros))
+        {
+            const auto & index_pros = std::get<dtpb::InvertedIndexFileProps>(index_info.index_pros);
+            index_pb->mutable_inverted_index()->CopyFrom(index_pros);
+        }
     }
 }
 
@@ -123,8 +131,8 @@ ColumnFilePersistedPtr ColumnFileTiny::deserializeMetadata(
     {
         if (index_pb.has_vector_index())
             index_infos->emplace_back(index_pb.index_page_id(), index_pb.vector_index());
-        else
-            index_infos->emplace_back(index_pb.index_page_id(), std::nullopt);
+        else if (index_pb.has_inverted_index())
+            index_infos->emplace_back(index_pb.index_page_id(), index_pb.inverted_index());
     }
 
     return std::make_shared<ColumnFileTiny>(schema, rows, bytes, data_page_id, context, index_infos);
@@ -181,10 +189,10 @@ ColumnFilePersistedPtr ColumnFileTiny::restoreFromCheckpoint(
     for (const auto & index : *index_infos)
     {
         auto new_index_page_id = put_remote_page(index.index_page_id);
-        if (index.vector_index)
-            new_index_infos->emplace_back(new_index_page_id, index.vector_index);
-        else
-            new_index_infos->emplace_back(new_index_page_id, std::nullopt);
+        if (std::holds_alternative<dtpb::VectorIndexFileProps>(index.index_pros))
+            new_index_infos->emplace_back(new_index_page_id, std::get<dtpb::VectorIndexFileProps>(index.index_pros));
+        else if (std::holds_alternative<dtpb::InvertedIndexFileProps>(index.index_pros))
+            new_index_infos->emplace_back(new_index_page_id, std::get<dtpb::InvertedIndexFileProps>(index.index_pros));
     }
     return std::make_shared<ColumnFileTiny>(column_file_schema, rows, bytes, new_cf_id, context, new_index_infos);
 }
@@ -237,8 +245,8 @@ std::tuple<ColumnFilePersistedPtr, BlockPtr> ColumnFileTiny::createFromCheckpoin
     {
         if (index_pb.has_vector_index())
             index_infos->emplace_back(index_pb.index_page_id(), index_pb.vector_index());
-        else
-            index_infos->emplace_back(index_pb.index_page_id(), std::nullopt);
+        else if (index_pb.has_inverted_index())
+            index_infos->emplace_back(index_pb.index_page_id(), index_pb.inverted_index());
     }
 
     return {

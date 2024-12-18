@@ -39,20 +39,21 @@ bool VectorIndexBuilder::isSupportedType(const IDataType & type)
     return checkDataTypeArray<DataTypeFloat32>(&type);
 }
 
-VectorIndexBuilderPtr VectorIndexBuilder::create(IndexID index_id, const TiDB::VectorIndexDefinitionPtr & definition)
+VectorIndexBuilderPtr VectorIndexBuilder::create(const LocalIndexInfo & index_info)
 {
+    const auto & definition = std::get<TiDB::VectorIndexDefinitionPtr>(index_info.index_definition);
     RUNTIME_CHECK(definition->dimension > 0);
     RUNTIME_CHECK(definition->dimension <= TiDB::MAX_VECTOR_DIMENSION);
 
     switch (definition->kind)
     {
     case tipb::VectorIndexKind::HNSW:
-        return std::make_shared<VectorIndexHNSWBuilder>(index_id, definition);
+        return std::make_shared<VectorIndexHNSWBuilder>(index_info);
     default:
         throw Exception( //
             ErrorCodes::INCORRECT_QUERY,
             "Unsupported vector index, index_id={} def={}",
-            index_id,
+            index_info.index_id,
             tipb::VectorIndexKind_Name(definition->kind));
     }
 }

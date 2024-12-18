@@ -225,7 +225,16 @@ LocalIndexesStats DeltaMergeStore::getLocalIndexStats()
         LocalIndexStats index_stats;
         index_stats.column_id = index_info.column_id;
         index_stats.index_id = index_info.index_id;
-        index_stats.index_kind = tipb::VectorIndexKind_Name(index_info.index_definition->kind);
+        index_stats.index_kind = std::visit(
+            [&](const auto & definition) -> String {
+                if constexpr (std::is_same_v<std::decay_t<decltype(definition)>, TiDB::VectorIndexDefinitionPtr>)
+                    return tipb::VectorIndexKind_Name(definition->kind);
+                else if constexpr (std::is_same_v<std::decay_t<decltype(definition)>, TiDB::InvertedIndexDefinitionPtr>)
+                    return "Inverted";
+                else
+                    return "Invalid";
+            },
+            index_info.index_definition);
 
         for (const auto & [handle, segment] : segments)
         {

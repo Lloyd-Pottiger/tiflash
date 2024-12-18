@@ -17,6 +17,8 @@
 #include <TestUtils/TiFlashTestBasic.h>
 #include <gtest/gtest.h>
 
+#include <type_traits>
+
 
 namespace DB::DM::tests
 {
@@ -33,7 +35,11 @@ public:
 
     static void build()
     {
-        InvertedIndexBuilder<T> builder;
+        LocalIndexInfo index_info{
+            0,
+            0,
+            std::make_shared<TiDB::InvertedIndexDefinition>(std::is_signed_v<T>, sizeof(T))};
+        InvertedIndexBuilder<T> builder(index_info);
         {
             auto col = DB::tests::createColumn<T>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}).column;
             auto del_mark_col = DB::tests::createColumn<UInt8>({0, 1, 0, 1, 0, 1, 0, 1, 0, 1}).column;

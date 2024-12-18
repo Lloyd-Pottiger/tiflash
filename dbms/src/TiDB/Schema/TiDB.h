@@ -20,9 +20,9 @@
 #include <IO/WriteHelpers.h>
 #include <Storages/KVStore/StorageEngineType.h>
 #include <Storages/KVStore/Types.h>
+#include <TiDB/Schema/LocalIndex.h>
 #include <TiDB/Schema/TiDBTypes.h>
 #include <TiDB/Schema/TiDB_fwd.h>
-#include <TiDB/Schema/VectorIndex.h>
 #include <tipb/schema.pb.h>
 
 #include <optional>
@@ -260,7 +260,7 @@ struct IndexInfo
     bool is_invisible = false;
     bool is_global = false;
 
-    VectorIndexDefinitionPtr vector_index = nullptr;
+    LocalIndexDefinitionPtr index_definition;
 };
 
 struct TableInfo

@@ -28,8 +28,8 @@ namespace DB::DM
 
 using ColumnFileTinys = std::vector<ColumnFileTinyPtr>;
 
-// ColumnFileTinyVectorIndexWriter write vector index store in PageStorage for ColumnFileTiny.
-class ColumnFileTinyVectorIndexWriter
+// ColumnFileTinyLocalIndexWriter write local index store in PageStorage for ColumnFileTiny.
+class ColumnFileTinyLocalIndexWriter
 {
 public:
     struct LocalIndexBuildInfo
@@ -54,12 +54,12 @@ public:
         WriteBatches & wbs; // Write index and modify meta in the same batch.
     };
 
-    explicit ColumnFileTinyVectorIndexWriter(const Options & options)
+    explicit ColumnFileTinyLocalIndexWriter(const Options & options)
         : logger(Logger::get())
         , options(options)
     {}
 
-    // Build vector index for all files in `options.files`.
+    // Build local index for all files in `options.files`.
     // Only return the files that have been built new indexes.
     using ProceedCheckFn = std::function<bool()>; // Return false to stop building index.
     ColumnFileTinys build(ProceedCheckFn should_proceed) const;

@@ -17,6 +17,7 @@ syntax = "proto2";
 package dtpb;
 
 import "vector_index.proto"; // for VectorIndexFileProps
+import "inverted_index.proto"; // for InvertedIndexFileProps
 
 message PackProperty {
     // when gc_safe_point exceed this version, there must be some data obsolete in this pack
@@ -68,6 +69,7 @@ message ColumnStat {
     optional string additional_data_for_test = 101;
     optional VectorIndexFileProps vector_index = 102;
     repeated VectorIndexFileProps vector_indexes = 103;
+    optional InvertedIndexFileProps inverted_index = 104;
 }
 
 message ColumnStats {

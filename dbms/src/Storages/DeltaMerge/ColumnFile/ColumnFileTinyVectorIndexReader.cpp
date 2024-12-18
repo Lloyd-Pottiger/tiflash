@@ -69,15 +69,15 @@ void ColumnFileTinyVectorIndexReader::loadVectorIndex()
     auto index_id = ann_query_info->index_id();
     const auto index_info_iter
         = std::find_if(index_infos->cbegin(), index_infos->cend(), [index_id](const auto & info) {
-              if (!info.vector_index)
-                  return false;
-              return info.vector_index->index_id() == index_id;
+              return std::visit(
+                  [&](const auto & index) -> bool { return index.index_id() == index_id; },
+                  info.index_pros);
           });
     if (index_info_iter == index_infos->cend())
         return;
-    auto vector_index = index_info_iter->vector_index;
-    if (!vector_index)
+    if (!std::holds_alternative<dtpb::VectorIndexFileProps>(index_info_iter->index_pros))
         return;
+    const auto & vector_index = std::get<dtpb::VectorIndexFileProps>(index_info_iter->index_pros);
     auto index_page_id = index_info_iter->index_page_id;
     auto load_from_page_storage = [&]() {
         perf_stat.load_from_cache = false;
@@ -85,7 +85,7 @@ void ColumnFileTinyVectorIndexReader::loadVectorIndex()
         auto index_page = data_provider->readTinyData(index_page_id, index_fields);
         ReadBufferFromOwnString read_buf(index_page.data);
         CompressedReadBuffer compressed(read_buf);
-        return VectorIndexViewer::load(*vector_index, compressed);
+        return VectorIndexViewer::load(vector_index, compressed);
     };
     if (vec_index_cache)
     {

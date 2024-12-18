@@ -43,6 +43,7 @@ struct ColumnStat
     size_t sizes_mark_bytes = 0;
 
     std::vector<dtpb::VectorIndexFileProps> vector_index;
+    std::optional<dtpb::InvertedIndexFileProps> inverted_index;
 
 #ifndef NDEBUG
     // This field is only used for testing

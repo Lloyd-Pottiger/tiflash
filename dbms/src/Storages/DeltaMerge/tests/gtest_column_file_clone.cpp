@@ -18,6 +18,7 @@
 #include <Storages/DeltaMerge/tests/gtest_segment_test_basic.h>
 #include <gtest/gtest.h>
 
+#include <variant>
 
 namespace DB::DM::tests
 {
@@ -64,13 +65,13 @@ TEST_F(ColumnFileCloneTest, CloneColumnFileTinyWithVectorIndex)
     // Different index page id
     ASSERT_NE(new_index_info.index_page_id, index_page_id);
     // Same index properties
-    ASSERT_EQ(new_index_info.vector_index->index_bytes(), 10);
-    ASSERT_EQ(new_index_info.vector_index->index_id(), 1);
-    ASSERT_EQ(new_index_info.vector_index->index_kind(), tipb::VectorIndexKind_Name(tipb::VectorIndexKind::HNSW));
-    ASSERT_EQ(
-        new_index_info.vector_index->distance_metric(),
-        tipb::VectorDistanceMetric_Name(tipb::VectorDistanceMetric::L2));
-    ASSERT_EQ(new_index_info.vector_index->dimensions(), 1);
+    ASSERT_TRUE(std::holds_alternative<dtpb::VectorIndexFileProps>(new_index_info.index_pros));
+    auto new_index_props = std::get<dtpb::VectorIndexFileProps>(new_index_info.index_pros);
+    ASSERT_EQ(new_index_props.index_bytes(), 10);
+    ASSERT_EQ(new_index_props.index_id(), 1);
+    ASSERT_EQ(new_index_props.index_kind(), tipb::VectorIndexKind_Name(tipb::VectorIndexKind::HNSW));
+    ASSERT_EQ(new_index_props.distance_metric(), tipb::VectorDistanceMetric_Name(tipb::VectorDistanceMetric::L2));
+    ASSERT_EQ(new_index_props.dimensions(), 1);
 
     // Check the data page and index page content
     auto storage_snap = std::make_shared<StorageSnapshot>(

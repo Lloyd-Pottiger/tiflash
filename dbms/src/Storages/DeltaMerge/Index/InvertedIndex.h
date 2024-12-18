@@ -21,6 +21,7 @@
 #include <IO/Buffer/ReadBufferFromFile.h>
 #include <IO/Buffer/WriteBuffer.h>
 #include <Poco/File.h>
+#include <Storages/DeltaMerge/Index/LocalIndexBuilder.h>
 
 
 namespace DB::DM
@@ -68,35 +69,35 @@ template <typename T>
 using Meta = std::vector<MetaEntry<T>>;
 } // namespace InvertedIndex
 
-
 /// Builds a InvertedIndex in memory.
 template <typename T>
-class InvertedIndexBuilder
+class InvertedIndexBuilder : public LocalIndexBuilder
 {
 public:
     using Key = T;
     using RowID = InvertedIndex::RowID;
 
-    using ProceedCheckFn = std::function<bool()>;
-
 public:
     static bool isSupportedType(const IDataType & type);
 
 public:
-    explicit InvertedIndexBuilder() = default;
+    explicit InvertedIndexBuilder(const LocalIndexInfo & index_info)
+        : LocalIndexBuilder(index_info)
+    {}
 
-    ~InvertedIndexBuilder() = default;
+    ~InvertedIndexBuilder() override = default;
 
-    void addBlock(const IColumn & column, const ColumnVector<UInt8> * del_mark, ProceedCheckFn should_proceed);
-
-    void saveToFile(std::string_view path) const;
-    void saveToBuffer(WriteBuffer & write_buf) const;
+    void addBlock(const IColumn & column, const ColumnVector<UInt8> * del_mark, ProceedCheckFn should_proceed) override;
+    void saveToFile(std::string_view path) const override;
+    void saveToBuffer(WriteBuffer & write_buf) const override;
 
 public:
     UInt64 added_rows = 0; // Includes nulls and deletes. Used as the index key.
     std::map<Key, std::vector<RowID>> index;
     double total_duration = 0;
 };
+
+LocalIndexBuilderPtr createInvertedIndexBuilder(const LocalIndexInfo & index_info);
 
 /// Views a InvertedIndex file.
 template <typename T>

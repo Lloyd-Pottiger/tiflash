@@ -81,14 +81,13 @@ public:
             .kind = tipb::VectorIndexKind::HNSW,
             .dimension = 1,
             .distance_metric = tipb::VectorDistanceMetric::L2,
-        })
+        }) const
     {
         const LocalIndexInfos index_infos = LocalIndexInfos{
             LocalIndexInfo{
-                .type = IndexType::Vector,
-                .index_id = EmptyIndexID,
-                .column_id = vec_column_id,
-                .index_definition = std::make_shared<TiDB::VectorIndexDefinition>(definition),
+                EmptyIndexID,
+                vec_column_id,
+                std::make_shared<TiDB::VectorIndexDefinition>(definition),
             },
         };
         return std::make_shared<LocalIndexInfos>(index_infos);

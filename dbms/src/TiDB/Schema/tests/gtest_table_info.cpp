@@ -150,10 +150,12 @@ try
                 ASSERT_EQ(idx.idx_cols[0].name, "vec");
                 ASSERT_EQ(idx.idx_cols[0].offset, 0);
                 ASSERT_EQ(idx.idx_cols[0].length, -1);
-                ASSERT_NE(idx.vector_index, nullptr);
-                ASSERT_EQ(idx.vector_index->kind, tipb::VectorIndexKind::HNSW);
-                ASSERT_EQ(idx.vector_index->dimension, 3);
-                ASSERT_EQ(idx.vector_index->distance_metric, tipb::VectorDistanceMetric::L2);
+                ASSERT_TRUE(std::holds_alternative<TiDB::VectorIndexDefinitionPtr>(idx.index_definition));
+                const auto & idx_def = std::get<TiDB::VectorIndexDefinitionPtr>(idx.index_definition);
+                ASSERT_NE(nullptr, idx_def);
+                ASSERT_EQ(idx_def->kind, tipb::VectorIndexKind::HNSW);
+                ASSERT_EQ(idx_def->dimension, 3);
+                ASSERT_EQ(idx_def->distance_metric, tipb::VectorDistanceMetric::L2);
                 ASSERT_EQ(table_info.columns.size(), 2);
                 auto col0 = table_info.columns[0];
                 ASSERT_EQ(col0.name, "col1");
@@ -179,7 +181,7 @@ try
                 ASSERT_EQ(idx0.idx_cols.size(), 1);
                 ASSERT_EQ(idx0.idx_cols[0].name, "col");
                 ASSERT_EQ(idx0.idx_cols[0].offset, 0);
-                ASSERT_EQ(idx0.vector_index, nullptr);
+                ASSERT_TRUE(std::holds_alternative<TiDB::InvalidIndexDefinitionPtr>(idx0.index_definition));
                 // vec index
                 auto idx1 = table_info.index_infos[1];
                 ASSERT_EQ(idx1.id, 4);
@@ -187,10 +189,12 @@ try
                 ASSERT_EQ(idx1.idx_cols.size(), 1);
                 ASSERT_EQ(idx1.idx_cols[0].name, "v");
                 ASSERT_EQ(idx1.idx_cols[0].offset, 1);
-                ASSERT_NE(idx1.vector_index, nullptr);
-                ASSERT_EQ(idx1.vector_index->kind, tipb::VectorIndexKind::HNSW);
-                ASSERT_EQ(idx1.vector_index->dimension, 5);
-                ASSERT_EQ(idx1.vector_index->distance_metric, tipb::VectorDistanceMetric::L2);
+                ASSERT_TRUE(std::holds_alternative<TiDB::VectorIndexDefinitionPtr>(idx1.index_definition));
+                const auto & idx_def = std::get<TiDB::VectorIndexDefinitionPtr>(idx1.index_definition);
+                ASSERT_NE(nullptr, idx_def);
+                ASSERT_EQ(idx_def->kind, tipb::VectorIndexKind::HNSW);
+                ASSERT_EQ(idx_def->dimension, 5);
+                ASSERT_EQ(idx_def->distance_metric, tipb::VectorDistanceMetric::L2);
 
                 ASSERT_EQ(table_info.columns.size(), 2);
                 auto col0 = table_info.columns[0];
@@ -215,11 +219,13 @@ try
                 ASSERT_EQ(idx0.idx_cols.size(), 1);
                 ASSERT_EQ(idx0.idx_cols[0].name, "vec");
                 ASSERT_EQ(idx0.idx_cols[0].offset, 1);
-                ASSERT_NE(idx0.vector_index, nullptr);
                 ASSERT_EQ(idx0.index_type, 5); // HNSW
-                ASSERT_EQ(idx0.vector_index->kind, tipb::VectorIndexKind::HNSW);
-                ASSERT_EQ(idx0.vector_index->dimension, 3);
-                ASSERT_EQ(idx0.vector_index->distance_metric, tipb::VectorDistanceMetric::COSINE);
+                ASSERT_TRUE(std::holds_alternative<TiDB::VectorIndexDefinitionPtr>(idx0.index_definition));
+                const auto & idx_def = std::get<TiDB::VectorIndexDefinitionPtr>(idx0.index_definition);
+                ASSERT_NE(nullptr, idx_def);
+                ASSERT_EQ(idx_def->kind, tipb::VectorIndexKind::HNSW);
+                ASSERT_EQ(idx_def->dimension, 3);
+                ASSERT_EQ(idx_def->distance_metric, tipb::VectorDistanceMetric::COSINE);
             },
         },
     };

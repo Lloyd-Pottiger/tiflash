@@ -21,6 +21,7 @@
 #include <Storages/DeltaMerge/ColumnFile/ColumnFilePersisted.h>
 #include <Storages/DeltaMerge/ColumnFile/ColumnFileSchema.h>
 #include <Storages/DeltaMerge/DMContext.h>
+#include <Storages/DeltaMerge/Index/LocalIndexInfo.h>
 #include <Storages/DeltaMerge/Remote/DataStore/DataStore.h>
 #include <Storages/DeltaMerge/Remote/DisaggSnapshot.h>
 #include <Storages/DeltaMerge/Remote/ObjectId.h>
@@ -360,15 +361,24 @@ RemotePb::ColumnFileRemote Serializer::serializeCFTiny(
     {
         auto * index_pb = remote_tiny->add_indexes();
         index_pb->set_index_page_id(index_info.index_page_id);
-        if (index_info.vector_index.has_value())
+        if (std::holds_alternative<dtpb::VectorIndexFileProps>(index_info.index_pros))
         {
+            auto vector_index = std::get<dtpb::VectorIndexFileProps>(index_info.index_pros);
             RemotePb::VectorIndexFileProps index_props;
-            index_props.set_index_kind(index_info.vector_index->index_kind());
-            index_props.set_distance_metric(index_info.vector_index->distance_metric());
-            index_props.set_dimensions(index_info.vector_index->dimensions());
-            index_props.set_index_id(index_info.vector_index->index_id());
-            index_props.set_index_bytes(index_info.vector_index->index_bytes());
+            index_props.set_index_kind(vector_index.index_kind());
+            index_props.set_distance_metric(vector_index.distance_metric());
+            index_props.set_dimensions(vector_index.dimensions());
+            index_props.set_index_id(vector_index.index_id());
+            index_props.set_index_bytes(vector_index.index_bytes());
             index_pb->mutable_vector_index()->Swap(&index_props);
+        }
+        else if (std::holds_alternative<dtpb::InvertedIndexFileProps>(index_info.index_pros))
+        {
+            auto inverted_index = std::get<dtpb::InvertedIndexFileProps>(index_info.index_pros);
+            RemotePb::InvertedIndexFileProps index_props;
+            index_props.set_index_id(inverted_index.index_id());
+            index_props.set_index_bytes(inverted_index.index_bytes());
+            index_pb->mutable_inverted_index()->Swap(&index_props);
         }
     }
 
@@ -401,8 +411,13 @@ ColumnFileTinyPtr Serializer::deserializeCFTiny(const DMContext & dm_context, co
             index_props.set_index_bytes(index_pb.vector_index().index_bytes());
             index_infos->emplace_back(index_pb.index_page_id(), index_props);
         }
-        else
-            index_infos->emplace_back(index_pb.index_page_id(), std::nullopt);
+        else if (index_pb.has_inverted_index())
+        {
+            dtpb::InvertedIndexFileProps index_props;
+            index_props.set_index_id(index_pb.inverted_index().index_id());
+            index_props.set_index_bytes(index_pb.inverted_index().index_bytes());
+            index_infos->emplace_back(index_pb.index_page_id(), index_props);
+        }
     }
 
     auto cf = std::make_shared<ColumnFileTiny>(

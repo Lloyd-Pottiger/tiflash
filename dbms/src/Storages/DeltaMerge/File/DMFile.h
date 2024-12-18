@@ -22,6 +22,7 @@
 #include <Storages/DeltaMerge/File/DMFileUtil.h>
 #include <Storages/DeltaMerge/File/DMFileV3IncrementWriter_fwd.h>
 #include <Storages/DeltaMerge/File/DMFile_fwd.h>
+#include <Storages/DeltaMerge/Index/LocalIndexInfo.h>
 #include <Storages/FormatVersion.h>
 #include <Storages/S3/S3Filename.h>
 #include <Storages/S3/S3RandomAccessFile.h>
@@ -38,6 +39,7 @@ int migrateServiceMain(DB::Context & context, const MigrateArgs & args);
 namespace DB::DM
 {
 class DMFileWithVectorIndexBlockInputStream;
+class DMFileLocalIndexWriter;
 namespace tests
 {
 class DMFileTest;
@@ -306,6 +308,17 @@ private:
     }
 
     static String vectorIndexFileName(IndexID index_id) { return fmt::format("idx_{}.vector", index_id); }
+    static String invertedIndexFileName(IndexID index_id) { return fmt::format("idx_{}.inverted", index_id); }
+    static String localIndexFileName(const LocalIndexInfo & index_info)
+    {
+        switch (index_info.type)
+        {
+        case IndexType::Vector:
+            return vectorIndexFileName(index_info.index_id);
+        case IndexType::Inverted:
+            return invertedIndexFileName(index_info.index_id);
+        }
+    }
     String vectorIndexPath(IndexID index_id) const { return subFilePath(vectorIndexFileName(index_id)); }
 
     void addPack(const DMFileMeta::PackStat & pack_stat) const { meta->pack_stats.push_back(pack_stat); }
@@ -332,7 +345,7 @@ public:
     friend class DMFileVectorIndexReader;
     friend class DMFileV3IncrementWriter;
     friend class DMFileWriter;
-    friend class DMFileVectorIndexWriter;
+    friend class DMFileLocalIndexWriter;
     friend class DMFileReader;
     friend class MarkLoader;
     friend class ColumnReadStream;

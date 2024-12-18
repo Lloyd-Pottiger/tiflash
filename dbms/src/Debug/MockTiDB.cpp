@@ -569,7 +569,7 @@ IndexInfo reverseGetIndexInfo(
     idx_col_json->set("offset", offset);
     TiDB::IndexColumnInfo idx_col(idx_col_json);
     index_info.idx_cols.push_back(idx_col);
-    index_info.vector_index = vector_index;
+    index_info.index_definition = vector_index;
 
     return index_info;
 }

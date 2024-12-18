@@ -18,6 +18,7 @@
 #include <Storages/DeltaMerge/ColumnFile/ColumnFilePersisted.h>
 #include <Storages/DeltaMerge/ColumnFile/ColumnFileSchema.h>
 #include <Storages/DeltaMerge/DMContext_fwd.h>
+#include <Storages/DeltaMerge/Index/LocalIndexInfo.h>
 #include <Storages/DeltaMerge/Remote/Serializer_fwd.h>
 #include <Storages/DeltaMerge/dtpb/column_file.pb.h>
 #include <Storages/DeltaMerge/dtpb/vector_index.pb.h>
@@ -37,19 +38,19 @@ class ColumnFileTiny : public ColumnFilePersisted
 {
 public:
     friend class ColumnFileTinyReader;
-    friend class ColumnFileTinyVectorIndexWriter;
+    friend class ColumnFileTinyLocalIndexWriter;
     friend class ColumnFileTinyVectorIndexReader;
     friend struct Remote::Serializer;
 
     struct IndexInfo
     {
-        IndexInfo(PageIdU64 page_id, std::optional<dtpb::VectorIndexFileProps> vec_index)
+        IndexInfo(PageIdU64 page_id, LocalIndexFilePros index_pros_)
             : index_page_id(page_id)
-            , vector_index(vec_index)
+            , index_pros(index_pros_)
         {}
 
         PageIdU64 index_page_id{};
-        std::optional<dtpb::VectorIndexFileProps> vector_index = std::nullopt;
+        LocalIndexFilePros index_pros;
     };
     using IndexInfos = std::vector<IndexInfo>;
     using IndexInfosPtr = std::shared_ptr<IndexInfos>;
@@ -99,9 +100,7 @@ public:
         if (!index_infos)
             return false;
         return std::any_of(index_infos->cbegin(), index_infos->cend(), [index_id](const auto & info) {
-            if (!info.vector_index)
-                return false;
-            return info.vector_index->index_id() == index_id;
+            return std::visit([&](const auto & pros) -> bool { return pros.index_id() == index_id; }, info.index_pros);
         });
     }
 

@@ -146,10 +146,10 @@ private:
 
     struct ReadBlockInfo
     {
-        size_t start_pack_id;
-        size_t pack_count;
-        RSResult rs_result;
-        size_t read_rows;
+        size_t start_pack_id = 0;
+        size_t pack_count = 0;
+        RSResult rs_result = RSResult::All;
+        size_t read_rows = 0;
     };
     // Will add some new read info to read_block_infos
     // Used by readWithFilter

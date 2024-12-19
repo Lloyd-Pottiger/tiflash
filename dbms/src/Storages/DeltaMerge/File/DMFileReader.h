@@ -156,6 +156,7 @@ private:
     // Return the original read block info and the number of new read block info
     std::tuple<ReadBlockInfo, size_t> updateReadBlockInfos(const IColumn::Filter & filter);
 
+private:
     DMFilePtr dmfile;
     ColumnDefines read_columns;
     ColumnReadStreamMap column_streams;
@@ -177,7 +178,6 @@ private:
 
     const UInt64 max_read_version;
 
-private:
     /// Filters
     DMFilePackFilter pack_filter;
 
@@ -199,6 +199,7 @@ private:
     ColumnCachePtr data_sharing_col_data_cache;
 
     std::deque<ReadBlockInfo> read_block_infos;
+    // row_offset of the given pack_id
     std::vector<size_t> pack_offset;
     // last read pack_id + 1, used by getSkippedRows
     size_t next_pack_id = 0;

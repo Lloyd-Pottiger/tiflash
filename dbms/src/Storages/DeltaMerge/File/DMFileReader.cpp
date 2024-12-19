@@ -708,6 +708,7 @@ void DMFileReader::initReadBlockInfos()
         {
             if (read_rows > 0)
                 read_block_infos.emplace_back(start_pack_id, pack_id - start_pack_id, last_pack_res, read_rows);
+            // Current pack is not included in the next read_block_info
             start_pack_id = pack_id + 1;
             read_rows = 0;
             last_pack_res = RSResult::All;
@@ -717,6 +718,7 @@ void DMFileReader::initReadBlockInfos()
         {
             if (read_rows > 0)
                 read_block_infos.emplace_back(start_pack_id, pack_id - start_pack_id, last_pack_res, read_rows);
+            // Current pack must be included in the next read_block_info
             start_pack_id = pack_id;
             read_rows = pack_stats[pack_id].rows;
             last_pack_res = pack_res[pack_id];
@@ -752,6 +754,7 @@ std::tuple<DMFileReader::ReadBlockInfo, size_t> DMFileReader::updateReadBlockInf
     {
         if (countBytesInFilter(filter, pack_offset[pack_id] - start_row_offset, pack_stats[pack_id].rows) == 0)
         {
+            // no rows should be returned in this pack according to the `filter`
             if (read_rows > 0)
                 // rs_result is not important here, we can use RSResult::Some
                 new_read_block_infos.emplace_back(start_pack_id, pack_id - start_pack_id, RSResult::Some, read_rows);

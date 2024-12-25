@@ -27,14 +27,10 @@ class DMFilePackFilterResult
 
     DMFilePackFilterResult(
         const MinMaxIndexCachePtr & index_cache_,
-        const FileProviderPtr & file_provider_,
         const ReadLimiterPtr & read_limiter_,
-        const ScanContextPtr & scan_context,
         const DMFilePtr & dmfile_)
         : index_cache(index_cache_)
-        , file_provider(file_provider_)
         , read_limiter(read_limiter_)
-        , scan_context(scan_context)
         , dmfile(dmfile_)
         , handle_res(dmfile->getPacks(), RSResult::All)
         , pack_res(dmfile->getPacks(), RSResult::Some)
@@ -45,26 +41,35 @@ public:
     const RSResults & getPackRes() const { return pack_res; }
     UInt64 countUsePack() const;
 
-    Handle getMinHandle(size_t pack_id) const
+    Handle getMinHandle(
+        size_t pack_id,
+        const FileProviderPtr & file_provider,
+        const ScanContextPtr & scan_context) const
     {
         if (!param.indexes.count(EXTRA_HANDLE_COLUMN_ID))
-            tryLoadIndex(EXTRA_HANDLE_COLUMN_ID);
+            tryLoadIndex(EXTRA_HANDLE_COLUMN_ID, file_provider, scan_context);
         auto & minmax_index = param.indexes.find(EXTRA_HANDLE_COLUMN_ID)->second.minmax;
         return minmax_index->getIntMinMax(pack_id).first;
     }
 
-    StringRef getMinStringHandle(size_t pack_id) const
+    StringRef getMinStringHandle(
+        size_t pack_id,
+        const FileProviderPtr & file_provider,
+        const ScanContextPtr & scan_context) const
     {
         if (!param.indexes.count(EXTRA_HANDLE_COLUMN_ID))
-            tryLoadIndex(EXTRA_HANDLE_COLUMN_ID);
+            tryLoadIndex(EXTRA_HANDLE_COLUMN_ID, file_provider, scan_context);
         auto & minmax_index = param.indexes.find(EXTRA_HANDLE_COLUMN_ID)->second.minmax;
         return minmax_index->getStringMinMax(pack_id).first;
     }
 
-    UInt64 getMaxVersion(size_t pack_id) const
+    UInt64 getMaxVersion(
+        size_t pack_id,
+        const FileProviderPtr & file_provider,
+        const ScanContextPtr & scan_context) const
     {
         if (!param.indexes.count(VERSION_COLUMN_ID))
-            tryLoadIndex(VERSION_COLUMN_ID);
+            tryLoadIndex(VERSION_COLUMN_ID, file_provider, scan_context);
         auto & minmax_index = param.indexes.find(VERSION_COLUMN_ID)->second.minmax;
         return minmax_index->getUInt64MinMax(pack_id).second;
     }
@@ -76,14 +81,14 @@ public:
     std::tuple<UInt64, UInt64, UInt64, UInt64> countPackRes() const;
 
 private:
-    void tryLoadIndex(ColId col_id) const;
+    void tryLoadIndex(
+        ColId col_id,
+        const FileProviderPtr & file_provider,
+        const ScanContextPtr & scan_context) const;
 
 private:
     MinMaxIndexCachePtr index_cache;
-    FileProviderPtr file_provider;
     ReadLimiterPtr read_limiter;
-
-    const ScanContextPtr scan_context;
 
     DMFilePtr dmfile;
     mutable RSCheckParam param;

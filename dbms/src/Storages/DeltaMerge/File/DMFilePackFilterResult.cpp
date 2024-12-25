@@ -59,7 +59,10 @@ std::tuple<UInt64, UInt64, UInt64, UInt64> DMFilePackFilterResult::countPackRes(
     return {none_count, some_count, all_count, all_null_count};
 }
 
-void DMFilePackFilterResult::tryLoadIndex(ColId col_id) const
+void DMFilePackFilterResult::tryLoadIndex(
+    ColId col_id,
+    const FileProviderPtr & file_provider,
+    const ScanContextPtr & scan_context) const
 {
     if (param.indexes.count(col_id))
         return;

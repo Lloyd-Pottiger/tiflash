@@ -40,7 +40,7 @@ void ColumnFileBig::calculateStat(const DMContext & dm_context)
     std::tie(valid_rows, valid_bytes) = DMFilePackFilter::loadValidRowsAndBytes(
         dm_context,
         file,
-        /*set_cache_if_miss*/ true,
+        /*set_cache_if_miss*/ false,
         {segment_range});
 }
 

@@ -28,12 +28,11 @@ class DMFilePackFilterResult
     DMFilePackFilterResult(
         const MinMaxIndexCachePtr & index_cache_,
         const ReadLimiterPtr & read_limiter_,
-        const DMFilePtr & dmfile_)
+        size_t pack_count)
         : index_cache(index_cache_)
         , read_limiter(read_limiter_)
-        , dmfile(dmfile_)
-        , handle_res(dmfile->getPacks(), RSResult::All)
-        , pack_res(dmfile->getPacks(), RSResult::Some)
+        , handle_res(pack_count, RSResult::All)
+        , pack_res(pack_count, RSResult::Some)
     {}
 
 public:
@@ -42,46 +41,47 @@ public:
     UInt64 countUsePack() const;
 
     Handle getMinHandle(
+        const DMFilePtr & dmfile,
         size_t pack_id,
         const FileProviderPtr & file_provider,
         const ScanContextPtr & scan_context) const
     {
         if (!param.indexes.count(EXTRA_HANDLE_COLUMN_ID))
-            tryLoadIndex(EXTRA_HANDLE_COLUMN_ID, file_provider, scan_context);
+            tryLoadIndex(dmfile, EXTRA_HANDLE_COLUMN_ID, file_provider, scan_context);
         auto & minmax_index = param.indexes.find(EXTRA_HANDLE_COLUMN_ID)->second.minmax;
         return minmax_index->getIntMinMax(pack_id).first;
     }
 
     StringRef getMinStringHandle(
+        const DMFilePtr & dmfile,
         size_t pack_id,
         const FileProviderPtr & file_provider,
         const ScanContextPtr & scan_context) const
     {
         if (!param.indexes.count(EXTRA_HANDLE_COLUMN_ID))
-            tryLoadIndex(EXTRA_HANDLE_COLUMN_ID, file_provider, scan_context);
+            tryLoadIndex(dmfile, EXTRA_HANDLE_COLUMN_ID, file_provider, scan_context);
         auto & minmax_index = param.indexes.find(EXTRA_HANDLE_COLUMN_ID)->second.minmax;
         return minmax_index->getStringMinMax(pack_id).first;
     }
 
     UInt64 getMaxVersion(
+        const DMFilePtr & dmfile,
         size_t pack_id,
         const FileProviderPtr & file_provider,
         const ScanContextPtr & scan_context) const
     {
         if (!param.indexes.count(VERSION_COLUMN_ID))
-            tryLoadIndex(VERSION_COLUMN_ID, file_provider, scan_context);
+            tryLoadIndex(dmfile, VERSION_COLUMN_ID, file_provider, scan_context);
         auto & minmax_index = param.indexes.find(VERSION_COLUMN_ID)->second.minmax;
         return minmax_index->getUInt64MinMax(pack_id).second;
     }
-
-    // Get valid rows and bytes after filter invalid packs by handle_range and filter
-    std::pair<size_t, size_t> validRowsAndBytes();
 
     // None+NoneNull, Some+SomeNull, All, AllNull
     std::tuple<UInt64, UInt64, UInt64, UInt64> countPackRes() const;
 
 private:
     void tryLoadIndex(
+        const DMFilePtr & dmfile,
         ColId col_id,
         const FileProviderPtr & file_provider,
         const ScanContextPtr & scan_context) const;
@@ -90,7 +90,6 @@ private:
     MinMaxIndexCachePtr index_cache;
     ReadLimiterPtr read_limiter;
 
-    DMFilePtr dmfile;
     mutable RSCheckParam param;
 
     // `handle_res` is the filter results of `rowkey_ranges`.

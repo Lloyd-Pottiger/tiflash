@@ -23,22 +23,6 @@ UInt64 DMFilePackFilterResult::countUsePack() const
     return std::count_if(pack_res.begin(), pack_res.end(), [](RSResult res) { return res.isUse(); });
 }
 
-std::pair<size_t, size_t> DMFilePackFilterResult::validRowsAndBytes()
-{
-    size_t rows = 0;
-    size_t bytes = 0;
-    const auto & pack_stats = dmfile->getPackStats();
-    for (size_t i = 0; i < pack_stats.size(); ++i)
-    {
-        if (pack_res[i].isUse())
-        {
-            rows += pack_stats[i].rows;
-            bytes += pack_stats[i].bytes;
-        }
-    }
-    return {rows, bytes};
-}
-
 std::tuple<UInt64, UInt64, UInt64, UInt64> DMFilePackFilterResult::countPackRes() const
 {
     UInt64 none_count = 0;
@@ -60,6 +44,7 @@ std::tuple<UInt64, UInt64, UInt64, UInt64> DMFilePackFilterResult::countPackRes(
 }
 
 void DMFilePackFilterResult::tryLoadIndex(
+    const DMFilePtr & dmfile,
     ColId col_id,
     const FileProviderPtr & file_provider,
     const ScanContextPtr & scan_context) const

@@ -69,8 +69,6 @@
 #include <ext/scope_guard.h>
 #include <memory>
 
-#include "Storages/DeltaMerge/ScanContext_fwd.h"
-
 
 namespace ProfileEvents
 {
@@ -3172,7 +3170,7 @@ std::pair<std::vector<Range>, std::vector<IdSetPtr>> parseDMFilePackInfo(
             }
 
             if (handle_res[pack_id] == RSResult::Some || pack_stat.not_clean > 0
-                || pack_filter->getMaxVersion(pack_id, file_provider, dm_context.scan_context) > start_ts)
+                || pack_filter->getMaxVersion(dmfile, pack_id, file_provider, dm_context.scan_context) > start_ts)
             {
                 // We need to read this pack to do RowKey or MVCC filter.
                 some_packs_set->insert(pack_id);

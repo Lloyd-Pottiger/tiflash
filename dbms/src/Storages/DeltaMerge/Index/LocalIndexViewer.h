@@ -1,4 +1,4 @@
-// Copyright 2023 PingCAP, Inc.
+// Copyright 2024 PingCAP, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,16 +14,16 @@
 
 #pragma once
 
-#include <Storages/KVStore/Types.h>
-#include <TiDB/Schema/TiDB_fwd.h>
-
-#include <memory>
-#include <vector>
-
 namespace DB::DM
 {
-struct ColumnDefine;
-using ColumnDefines = std::vector<ColumnDefine>;
-using ColumnDefinesPtr = std::shared_ptr<ColumnDefines>;
+
+/// Viewer for local index. 
+class LocalIndexViewer
+{
+public:
+    explicit LocalIndexViewer() = default;
+
+    virtual ~LocalIndexViewer() = default;
+};
 
 } // namespace DB::DM

@@ -457,7 +457,7 @@ std::tuple<DMFileMeta::LocalIndexState, size_t> DMFileMetaV2::getLocalIndexState
     return {LocalIndexState::IndexPending, col_stat.data_bytes};
 }
 
-std::optional<dtpb::VectorIndexFileProps> DMFileMetaV2::getLocalIndex(ColId col_id, IndexID index_id) const
+std::optional<LocalIndexFilePros> DMFileMetaV2::getLocalIndex(ColId col_id, IndexID index_id) const
 {
     // acquire a lock on meta to ensure the atomically on col_stat.vector_index
     std::scoped_lock lock(mtx_bump);

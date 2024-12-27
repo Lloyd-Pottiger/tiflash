@@ -75,7 +75,6 @@ VectorIndexViewerPtr VectorIndexViewer::view(const dtpb::VectorIndexFileProps & 
     }
 }
 
-
 VectorIndexViewerPtr VectorIndexViewer::load(const dtpb::VectorIndexFileProps & file_props, ReadBuffer & buf)
 {
     RUNTIME_CHECK(file_props.dimensions() > 0);

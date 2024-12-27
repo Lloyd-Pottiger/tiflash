@@ -22,6 +22,7 @@
 #include <IO/Buffer/WriteBuffer.h>
 #include <Poco/File.h>
 #include <Storages/DeltaMerge/Index/LocalIndexBuilder.h>
+#include <Storages/DeltaMerge/Index/LocalIndexViewer.h>
 
 
 namespace DB::DM
@@ -100,16 +101,18 @@ public:
 LocalIndexBuilderPtr createInvertedIndexBuilder(const LocalIndexInfo & index_info);
 
 /// Views a InvertedIndex file.
-template <typename T>
-class InvertedIndexViewer
+class InvertedIndexViewer : public LocalIndexViewer
 {
 public:
-    using Key = InvertedIndexBuilder<T>::Key;
-    using RowID = InvertedIndexBuilder<T>::RowID;
+    using Key = UInt64;
+    using RowID = InvertedIndex::RowID;
 
 public:
     explicit InvertedIndexViewer() = default;
-    virtual ~InvertedIndexViewer() = default;
+    ~InvertedIndexViewer() override = default;
+
+    static InvertedIndexViewerPtr view(TypeIndex type_id, std::string_view path);
+    static InvertedIndexViewerPtr view(TypeIndex type_id, ReadBuffer & buf, size_t index_size);
 
     virtual std::vector<RowID> search(const Key & key) const = 0;
     // [begin, end)
@@ -119,11 +122,11 @@ public:
 /// Views a InvertedIndex file by loading it into memory.
 /// Its performance is better than InvertedIndexFileViewer but it consumes more memory.
 template <typename T>
-class InvertedIndexMemoryViewer : public InvertedIndexViewer<T>
+class InvertedIndexMemoryViewer : public InvertedIndexViewer
 {
 public:
-    using Key = InvertedIndexBuilder<T>::Key;
-    using RowID = InvertedIndexBuilder<T>::RowID;
+    using Key = InvertedIndexViewer::Key;
+    using RowID = InvertedIndexViewer::RowID;
 
 private:
     void load(ReadBuffer & buf, size_t index_size);
@@ -149,11 +152,11 @@ private:
 /// Views a InvertedIndex file by reading it from disk.
 /// Its memory usage is minimal but its performance is worse than InvertedIndexMemoryViewer.
 template <typename T>
-class InvertedIndexFileViewer : public InvertedIndexViewer<T>
+class InvertedIndexFileViewer : public InvertedIndexViewer
 {
 public:
-    using Key = InvertedIndexBuilder<T>::Key;
-    using RowID = InvertedIndexBuilder<T>::RowID;
+    using Key = InvertedIndexViewer::Key;
+    using RowID = InvertedIndexViewer::RowID;
 
 private:
     void loadMeta(ReadBuffer & buf, size_t index_size);

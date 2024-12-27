@@ -16,8 +16,19 @@
 
 #include <tipb/executor.pb.h>
 
+#include <memory>
+
 namespace DB::DM
 {
+
+class LocalIndexViewer;
+using LocalIndexViewerPtr = std::shared_ptr<LocalIndexViewer>;
+
+class LocalIndexBuilder;
+using LocalIndexBuilderPtr = std::shared_ptr<LocalIndexBuilder>;
+
+class LocalIndexCache;
+using LocalIndexCachePtr = std::shared_ptr<LocalIndexCache>;
 
 using ANNQueryInfoPtr = std::shared_ptr<tipb::ANNQueryInfo>;
 
@@ -27,7 +38,7 @@ using VectorIndexBuilderPtr = std::shared_ptr<VectorIndexBuilder>;
 class VectorIndexViewer;
 using VectorIndexViewerPtr = std::shared_ptr<VectorIndexViewer>;
 
-class VectorIndexCache;
-using VectorIndexCachePtr = std::shared_ptr<VectorIndexCache>;
+class InvertedIndexViewer;
+using InvertedIndexViewerPtr = std::shared_ptr<InvertedIndexViewer>;
 
 } // namespace DB::DM

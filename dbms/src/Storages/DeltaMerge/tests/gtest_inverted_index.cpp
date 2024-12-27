@@ -61,7 +61,7 @@ public:
         builder.saveToFile(IndexFileName);
     }
 
-    static void search(std::shared_ptr<InvertedIndexViewer<T>> viewer)
+    static void search(const InvertedIndexViewerPtr & viewer)
     {
         ASSERT_EQ(viewer->search(1).size(), 3);
         ASSERT_EQ(viewer->search(2).size(), 4);

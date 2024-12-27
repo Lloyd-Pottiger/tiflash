@@ -283,6 +283,56 @@ void InvertedIndexBuilder<T>::saveToBuffer(WriteBuffer & write_buf) const
     write_buf.next();
 }
 
+InvertedIndexViewerPtr InvertedIndexViewer::view(TypeIndex type_id, std::string_view path)
+{
+    switch (type_id)
+    {
+    case TypeIndex::UInt8:
+        return std::make_shared<InvertedIndexFileViewer<UInt8>>(path);
+    case TypeIndex::Int8:
+        return std::make_shared<InvertedIndexFileViewer<Int8>>(path);
+    case TypeIndex::UInt16:
+        return std::make_shared<InvertedIndexFileViewer<UInt16>>(path);
+    case TypeIndex::Int16:
+        return std::make_shared<InvertedIndexFileViewer<Int16>>(path);
+    case TypeIndex::UInt32:
+        return std::make_shared<InvertedIndexFileViewer<UInt32>>(path);
+    case TypeIndex::Int32:
+        return std::make_shared<InvertedIndexFileViewer<Int32>>(path);
+    case TypeIndex::UInt64:
+        return std::make_shared<InvertedIndexFileViewer<UInt64>>(path);
+    case TypeIndex::Int64:
+        return std::make_shared<InvertedIndexFileViewer<Int64>>(path);
+    default:
+        throw Exception(ErrorCodes::BAD_ARGUMENTS, "Unsupported type_id {}", magic_enum::enum_name(type_id));
+    }
+}
+
+InvertedIndexViewerPtr InvertedIndexViewer::view(TypeIndex type_id, ReadBuffer & buf, size_t index_size)
+{
+    switch (type_id)
+    {
+    case TypeIndex::UInt8:
+        return std::make_shared<InvertedIndexMemoryViewer<UInt8>>(buf, index_size);
+    case TypeIndex::Int8:
+        return std::make_shared<InvertedIndexMemoryViewer<Int8>>(buf, index_size);
+    case TypeIndex::UInt16:
+        return std::make_shared<InvertedIndexMemoryViewer<UInt16>>(buf, index_size);
+    case TypeIndex::Int16:
+        return std::make_shared<InvertedIndexMemoryViewer<Int16>>(buf, index_size);
+    case TypeIndex::UInt32:
+        return std::make_shared<InvertedIndexMemoryViewer<UInt32>>(buf, index_size);
+    case TypeIndex::Int32:
+        return std::make_shared<InvertedIndexMemoryViewer<Int32>>(buf, index_size);
+    case TypeIndex::UInt64:
+        return std::make_shared<InvertedIndexMemoryViewer<UInt64>>(buf, index_size);
+    case TypeIndex::Int64:
+        return std::make_shared<InvertedIndexMemoryViewer<Int64>>(buf, index_size);
+    default:
+        throw Exception(ErrorCodes::BAD_ARGUMENTS, "Unsupported type_id {}", magic_enum::enum_name(type_id));
+    }
+}
+
 template <typename T>
 void InvertedIndexMemoryViewer<T>::load(ReadBuffer & read_buf, size_t index_size)
 {
@@ -329,7 +379,8 @@ void InvertedIndexMemoryViewer<T>::load(ReadBuffer & read_buf, size_t index_size
 template <typename T>
 std::vector<typename InvertedIndexMemoryViewer<T>::RowID> InvertedIndexMemoryViewer<T>::search(const Key & key) const
 {
-    auto it = index.find(key);
+    T real_key = key;
+    auto it = index.find(real_key);
     return it == index.end() ? std::vector<RowID>{} : it->second;
 }
 
@@ -338,9 +389,11 @@ std::vector<typename InvertedIndexMemoryViewer<T>::RowID> InvertedIndexMemoryVie
     const Key & begin,
     const Key & end) const
 {
+    T real_begin = begin;
+    T real_end = end;
     std::vector<RowID> result;
-    auto index_begin = index.lower_bound(begin);
-    auto index_end = index.lower_bound(end);
+    auto index_begin = index.lower_bound(real_begin);
+    auto index_end = index.lower_bound(real_end);
     for (auto it = index_begin; it != index_end; ++it)
         result.insert(result.end(), it->second.begin(), it->second.end());
     return result;
@@ -388,14 +441,16 @@ InvertedIndex::Block<T> InvertedIndexFileViewer<T>::readBlock(UInt32 offset, UIn
 template <typename T>
 std::vector<typename InvertedIndexFileViewer<T>::RowID> InvertedIndexFileViewer<T>::search(const Key & key) const
 {
+    T real_key = key;
     auto it = std::find_if(meta.begin(), meta.end(), [&](const auto & entry) {
-        return entry.min <= key && entry.max >= key;
+        return entry.min <= real_key && entry.max >= real_key;
     });
     if (it == meta.end())
         return std::vector<RowID>{};
 
     const auto block = readBlock(it->offset, it->size);
-    auto block_it = std::find_if(block.begin(), block.end(), [&](const auto & entry) { return entry.value == key; });
+    auto block_it
+        = std::find_if(block.begin(), block.end(), [&](const auto & entry) { return entry.value == real_key; });
     return block_it == block.end() ? std::vector<RowID>{} : block_it->row_ids;
 }
 
@@ -404,13 +459,15 @@ std::vector<typename InvertedIndexFileViewer<T>::RowID> InvertedIndexFileViewer<
     const Key & begin,
     const Key & end) const
 {
+    T real_begin = begin;
+    T real_end = end;
     std::vector<RowID> result;
     // max < begin
-    auto meta_begin = std::lower_bound(meta.begin(), meta.end(), begin, [](const auto & entry, const auto & key) {
+    auto meta_begin = std::lower_bound(meta.begin(), meta.end(), real_begin, [](const auto & entry, const auto & key) {
         return entry.max < key;
     });
     // min >= end
-    auto meta_end = std::lower_bound(meta_begin, meta.end(), end, [](const auto & entry, const auto & key) {
+    auto meta_end = std::lower_bound(meta_begin, meta.end(), real_end, [](const auto & entry, const auto & key) {
         return entry.min < key;
     });
 
@@ -418,15 +475,15 @@ std::vector<typename InvertedIndexFileViewer<T>::RowID> InvertedIndexFileViewer<
     {
         const auto block = readBlock(it->offset, it->size);
         auto block_begin
-            = std::lower_bound(block.begin(), block.end(), begin, [](const auto & entry, const auto & key) {
+            = std::lower_bound(block.begin(), block.end(), real_begin, [](const auto & entry, const auto & key) {
                   return entry.value < key;
               });
         for (auto block_it = block_begin; block_it != block.end(); ++block_it)
         {
             auto [value, row_ids] = *block_it;
-            if (value >= begin && value < end)
+            if (value >= real_begin && value < real_end)
                 result.insert(result.end(), row_ids.begin(), row_ids.end());
-            else if (value >= end)
+            else if (value >= real_end)
                 break;
         }
     }

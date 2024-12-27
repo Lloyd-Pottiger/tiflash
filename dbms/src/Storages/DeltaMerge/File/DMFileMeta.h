@@ -217,7 +217,7 @@ public:
     // Return std::nullopt if
     // - the col_id is not exist in the dmfile
     // - the index has not been built
-    virtual std::optional<dtpb::VectorIndexFileProps> getLocalIndex(ColId, IndexID) const
+    virtual std::optional<LocalIndexFilePros> getLocalIndex(ColId, IndexID) const
     {
         RUNTIME_CHECK_MSG(false, "MetaV1 does not support getLocalIndexState");
     }

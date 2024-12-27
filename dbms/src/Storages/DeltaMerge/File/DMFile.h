@@ -167,7 +167,7 @@ public:
     // Return std::nullopt if
     // - the col_id is not exist in the dmfile
     // - the index has not been built
-    std::optional<dtpb::VectorIndexFileProps> getLocalIndex(ColId col_id, IndexID index_id) const
+    std::optional<LocalIndexFilePros> getLocalIndex(ColId col_id, IndexID index_id) const
     {
         return meta->getLocalIndex(col_id, index_id);
     }
@@ -192,7 +192,7 @@ public:
      */
     ColumnDefines getColumnDefines(bool sort_by_id = true) const
     {
-        ColumnDefines results{};
+        ColumnDefines results;
         results.reserve(this->meta->column_stats.size());
         for (const auto & cs : this->meta->column_stats)
         {
@@ -320,6 +320,7 @@ private:
         }
     }
     String vectorIndexPath(IndexID index_id) const { return subFilePath(vectorIndexFileName(index_id)); }
+    String invertedIndexPath(IndexID index_id) const { return subFilePath(invertedIndexFileName(index_id)); }
 
     void addPack(const DMFileMeta::PackStat & pack_stat) const { meta->pack_stats.push_back(pack_stat); }
 

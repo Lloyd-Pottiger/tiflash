@@ -18,13 +18,11 @@
 #include <Columns/IColumn.h>
 #include <DataTypes/IDataType.h>
 #include <Storages/DeltaMerge/Index/LocalIndexInfo.h>
+#include <Storages/DeltaMerge/Index/LocalIndex_fwd.h>
 
 
 namespace DB::DM
 {
-
-class LocalIndexBuilder;
-using LocalIndexBuilderPtr = std::shared_ptr<LocalIndexBuilder>;
 
 /// Builds a LocalIndex.
 class LocalIndexBuilder

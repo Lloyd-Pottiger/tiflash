@@ -471,6 +471,9 @@ std::optional<LocalIndexFilePros> DMFileMetaV2::getLocalIndex(ColId col_id, Inde
         if (vec_idx.index_id() == index_id)
             return vec_idx;
     }
+    if (col_stat.inverted_index.has_value() && col_stat.inverted_index->index_id() == index_id)
+        return col_stat.inverted_index;
+
     return std::nullopt;
 }
 } // namespace DB::DM

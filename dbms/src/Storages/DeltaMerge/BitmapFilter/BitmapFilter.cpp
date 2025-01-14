@@ -104,7 +104,7 @@ void BitmapFilter::merge(const BitmapFilter & other)
     {
         return;
     }
-    for (UInt32 i = 0; i < filter.size(); i++)
+    for (UInt32 i = 0; i < filter.size(); ++i)
     {
         filter[i] = filter[i] || other.filter[i];
     }
@@ -119,7 +119,7 @@ void BitmapFilter::intersect(const BitmapFilter & other)
         all_match = other.all_match;
         return;
     }
-    for (UInt32 i = 0; i < filter.size(); i++)
+    for (UInt32 i = 0; i < filter.size(); ++i)
     {
         filter[i] = filter[i] && other.filter[i];
     }

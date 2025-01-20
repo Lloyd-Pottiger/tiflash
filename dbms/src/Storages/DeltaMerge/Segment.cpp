@@ -40,7 +40,6 @@
 #include <Storages/DeltaMerge/File/DMFileBlockInputStream.h>
 #include <Storages/DeltaMerge/File/DMFileBlockOutputStream.h>
 #include <Storages/DeltaMerge/Filter/FilterHelper.h>
-#include <Storages/DeltaMerge/Index/LocalIndexInfo.h>
 #include <Storages/DeltaMerge/LateMaterializationBlockInputStream.h>
 #include <Storages/DeltaMerge/PKSquashingBlockInputStream.h>
 #include <Storages/DeltaMerge/Range.h>
@@ -50,6 +49,7 @@
 #include <Storages/DeltaMerge/RowKeyRange.h>
 #include <Storages/DeltaMerge/ScanContext.h>
 #include <Storages/DeltaMerge/Segment.h>
+#include <Storages/DeltaMerge/SegmentInvertedIndexReader.h>
 #include <Storages/DeltaMerge/SegmentReadTaskPool.h>
 #include <Storages/DeltaMerge/Segment_fwd.h>
 #include <Storages/DeltaMerge/StoragePool/StoragePool.h>
@@ -3582,6 +3582,16 @@ BlockInputStreamPtr Segment::getBitmapFilterInputStream(
         pack_filter_results,
         start_ts,
         build_bitmap_filter_block_rows);
+
+    if (executor->column_value_set)
+    {
+        SegmentInvertedIndexReader index_reader(
+            segment_snap,
+            executor->column_value_set,
+            dm_context.global_context.getLocalIndexCache());
+        auto index_bitmap_filter = index_reader.load();
+        bitmap_filter->intersect(*index_bitmap_filter);
+    }
 
     // If we don't need to read the cacheable columns, release column cache as soon as possible.
     if (!hasCacheableColumn(columns_to_read))

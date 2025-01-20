@@ -43,16 +43,19 @@ String DMFileInvertedIndexReader::PerfStat::toString() const
 BitmapFilterPtr DMFileInvertedIndexReader::load()
 {
     if (loaded)
-        return {};
+        return nullptr;
 
     auto sorted_results = column_value_set->check(
         [&](const ColumnValueSetPtr & set, size_t size) {
             auto inverted_index = loadInvertedIndex(set);
+            if (!inverted_index)
+                return BitmapFilterPtr();
             return loadSearchResult(inverted_index, set, size);
         },
         dmfile->getRows());
 
-    perf_stat.selected_nodes = sorted_results->count();
+    if (sorted_results)
+        perf_stat.selected_nodes = sorted_results->count();
     loaded = true;
     return sorted_results;
 }
@@ -68,7 +71,8 @@ InvertedIndexViewerPtr DMFileInvertedIndexReader::loadInvertedIndex(const Column
 
     // Check vector index exists on the column
     auto local_index = dmfile->getLocalIndex(col_id, index_id);
-    RUNTIME_CHECK(local_index.has_value(), col_id, index_id);
+    if (!local_index)
+        return nullptr;
     RUNTIME_CHECK(std::holds_alternative<dtpb::InvertedIndexFileProps>(*local_index), col_id, index_id);
     const auto & index_props = std::get<dtpb::InvertedIndexFileProps>(*local_index);
     perf_stat.index_size = index_props.index_bytes();

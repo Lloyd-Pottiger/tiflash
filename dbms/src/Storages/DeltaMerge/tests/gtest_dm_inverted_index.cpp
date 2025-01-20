@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <Interpreters/Context.h>
+#include <Storages/DeltaMerge/ColumnFile/ColumnFileTinyLocalIndexWriter.h>
 #include <Storages/DeltaMerge/File/DMFileBlockOutputStream.h>
 #include <Storages/DeltaMerge/File/DMFileInvertedIndexReader.h>
 #include <Storages/DeltaMerge/File/DMFileLocalIndexWriter.h>

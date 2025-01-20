@@ -175,15 +175,11 @@ ColumnFileTinyPtr ColumnFileTinyLocalIndexWriter::buildIndexForFile(
             index_builder->saveToBuffer(compressed);
             compressed.next();
             auto compressed_size = write_buf.count();
-            // Write the uncompressed size to the tail of the page.
             auto uncompressed = compressed.getUncompressedBytes();
-            write_buf.write(reinterpret_cast<const char *>(&uncompressed), sizeof(uncompressed));
-            auto total_size = write_buf.count();
             auto buf = write_buf.tryGetReadBuffer();
-            // {compressed_index_data, uncompressed_size}
-            options.wbs.log.putPage(index_page_id, 0, buf, total_size, {compressed_size, sizeof(uncompressed)});
+            options.wbs.log.putPage(index_page_id, 0, buf, compressed_size);
 
-            auto index_pros = indexDefinitionToFileProps(index_builder->index_info, total_size);
+            auto index_pros = indexDefinitionToFileProps(index_builder->index_info, compressed_size, uncompressed);
             index_infos->emplace_back(index_page_id, index_pros);
         }
     }

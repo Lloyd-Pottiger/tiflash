@@ -236,7 +236,7 @@ size_t DMFileLocalIndexWriter::buildIndexForFile(const DMFilePtr & dm_file_mutab
 
                 // Memorize what kind of local index it is, so that we can correctly restore it when reading.
                 auto index_bytes = Poco::File(index_path).getSize();
-                auto pb_idx = indexDefinitionToFileProps(index_builder->index_info, index_bytes);
+                auto pb_idx = indexDefinitionToFileProps(index_builder->index_info, index_bytes, index_bytes);
                 new_indexes.emplace_back(std::move(pb_idx));
 
                 total_built_index_bytes += index_bytes;

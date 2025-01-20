@@ -83,7 +83,10 @@ ColumnID getVectorIndxColumnID(
     return EmptyColumnID;
 }
 
-LocalIndexFilePros indexDefinitionToFileProps(const LocalIndexInfo & index_info, size_t index_size)
+LocalIndexFilePros indexDefinitionToFileProps(
+    const LocalIndexInfo & index_info,
+    size_t compressed_size,
+    size_t uncompressed_size)
 {
     switch (index_info.type)
     {
@@ -95,14 +98,14 @@ LocalIndexFilePros indexDefinitionToFileProps(const LocalIndexInfo & index_info,
         pb_idx.set_distance_metric(tipb::VectorDistanceMetric_Name(definition->distance_metric));
         pb_idx.set_dimensions(definition->dimension);
         pb_idx.set_index_id(index_info.index_id);
-        pb_idx.set_index_bytes(index_size);
+        pb_idx.set_index_bytes(compressed_size);
         return pb_idx;
     }
     case IndexType::Inverted:
     {
         dtpb::InvertedIndexFileProps pb_idx;
         pb_idx.set_index_id(index_info.index_id);
-        pb_idx.set_index_bytes(index_size);
+        pb_idx.set_index_bytes(uncompressed_size);
         return pb_idx;
     }
     }

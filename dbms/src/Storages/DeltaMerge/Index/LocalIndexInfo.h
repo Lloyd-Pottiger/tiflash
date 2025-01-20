@@ -68,7 +68,10 @@ using LocalIndexInfos = std::vector<LocalIndexInfo>;
 using LocalIndexInfosPtr = std::shared_ptr<LocalIndexInfos>;
 using LocalIndexInfosSnapshot = std::shared_ptr<const LocalIndexInfos>;
 
-LocalIndexFilePros indexDefinitionToFileProps(const LocalIndexInfo & index_info, size_t index_size);
+LocalIndexFilePros indexDefinitionToFileProps(
+    const LocalIndexInfo & index_info,
+    size_t compressed_size,
+    size_t uncompressed_size);
 
 LocalIndexInfosPtr initLocalIndexInfos(const TiDB::TableInfo & table_info, const LoggerPtr & logger);
 

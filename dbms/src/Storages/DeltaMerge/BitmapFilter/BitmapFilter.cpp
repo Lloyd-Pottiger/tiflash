@@ -126,6 +126,13 @@ void BitmapFilter::intersect(const BitmapFilter & other)
     all_match = all_match && other.all_match;
 }
 
+void BitmapFilter::append(const BitmapFilter & other)
+{
+    filter.reserve(filter.size() + other.filter.size());
+    std::copy(other.filter.cbegin(), other.filter.cend(), std::back_inserter(filter));
+    all_match = all_match && other.all_match;
+}
+
 void BitmapFilter::runOptimize()
 {
     all_match = std::find(filter.begin(), filter.end(), static_cast<UInt8>(false)) == filter.end();

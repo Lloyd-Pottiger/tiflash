@@ -14,54 +14,54 @@
 
 #pragma once
 
-#include <Storages/DeltaMerge/DeltaMergeDefines.h>
-#include <Storages/DeltaMerge/File/DMFile_fwd.h>
+#include <Storages/DeltaMerge/BitmapFilter/BitmapFilterView.h>
+#include <Storages/DeltaMerge/ColumnFile/ColumnFile.h>
 #include <Storages/DeltaMerge/Filter/ColumnValueSet.h>
-#include <Storages/DeltaMerge/Index/InvertedIndex.h>
 #include <Storages/DeltaMerge/Index/LocalIndex_fwd.h>
-#include <Storages/DeltaMerge/ScanContext_fwd.h>
 
 namespace DB::DM
 {
 
-class DMFileInvertedIndexReader
+class ColumnFileTinyInvertedIndexReader
 {
 private:
-    const DMFilePtr & dmfile;
+    const ColumnFileTiny & tiny_file;
+    const IColumnFileDataProviderPtr data_provider;
+
     const ColumnValueSetPtr column_value_set;
     // Global local index cache
     const LocalIndexCachePtr local_index_cache;
+    LoggerPtr log;
 
     // Performance statistics
     struct PerfStat
     {
-        double duration_search;
-        double duration_load_index;
-        size_t index_size;
-        size_t selected_nodes;
-        bool has_s3_download;
-        bool has_load_from_file;
-
-        String toString() const;
+        double duration_search = 0.0;
+        size_t returned_rows = 0;
+        // Whether the vector index is loaded from cache.
+        bool load_from_cache = true;
     };
     PerfStat perf_stat;
 
+    // Whether the vector index and search results are loaded.
     bool loaded = false;
 
 public:
-    DMFileInvertedIndexReader(
+    ColumnFileTinyInvertedIndexReader(
+        const ColumnFileTiny & tiny_file_,
+        const IColumnFileDataProviderPtr & data_provider_,
         const ColumnValueSetPtr & column_value_set_,
-        const DMFilePtr & dmfile_,
         const LocalIndexCachePtr & local_index_cache_)
-        : dmfile(dmfile_)
+        : tiny_file(tiny_file_)
+        , data_provider(data_provider_)
         , column_value_set(column_value_set_)
         , local_index_cache(local_index_cache_)
-        , perf_stat()
+        , log(Logger::get())
     {}
 
-    ~DMFileInvertedIndexReader() = default;
+    ~ColumnFileTinyInvertedIndexReader();
 
-    // Load inverted index and search results.
+    // Load vector index and search results.
     BitmapFilterPtr load();
 
 private:
@@ -72,6 +72,6 @@ private:
         size_t size);
 };
 
-using DMFileInvertedIndexReaderPtr = std::shared_ptr<DMFileInvertedIndexReader>;
+using ColumnFileTinyInvertedIndexReaderPtr = std::shared_ptr<ColumnFileTinyInvertedIndexReader>;
 
 } // namespace DB::DM

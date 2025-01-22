@@ -126,6 +126,18 @@ void BitmapFilter::intersect(const BitmapFilter & other)
     all_match = all_match && other.all_match;
 }
 
+bool BitmapFilter::isAllNotMatch(UInt32 start, UInt32 limit) const
+{
+    RUNTIME_CHECK(start + limit <= filter.size());
+    if (all_match)
+    {
+        return false;
+    }
+    auto begin = filter.cbegin() + start;
+    auto end = filter.cbegin() + start + limit;
+    return std::find(begin, end, static_cast<UInt8>(true)) == end;
+}
+
 void BitmapFilter::append(const BitmapFilter & other)
 {
     filter.reserve(filter.size() + other.filter.size());

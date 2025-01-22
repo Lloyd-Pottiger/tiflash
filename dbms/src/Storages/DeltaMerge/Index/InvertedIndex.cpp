@@ -188,19 +188,20 @@ void InvertedIndexBuilder<T>::addBlock(
 {
     // Note: column may be nullable.
     const bool is_nullable = column.isColumnNullable();
-    const typename ColumnVector<T>::Container & col_vector = is_nullable
-        ? checkAndGetNestedColumn<ColumnVector<T>>(&column)->getData()
-        : checkAndGetColumn<ColumnVector<T>>(&column)->getData();
+    const auto * col_vector
+        = is_nullable ? checkAndGetNestedColumn<ColumnVector<T>>(&column) : checkAndGetColumn<ColumnVector<T>>(&column);
+    RUNTIME_CHECK_MSG(col_vector, "ColumnVector is expected, get: {}, T: {}", column.getName(), typeid(T).name());
+    const auto & col_data = col_vector->getData();
 
     const auto * null_map = is_nullable ? &(checkAndGetColumn<ColumnNullable>(&column)->getNullMapData()) : nullptr;
-    const auto * del_mark_data = (!del_mark) ? nullptr : &(del_mark->getData());
+    const auto * del_mark_data = del_mark ? &(del_mark->getData()) : nullptr;
 
     Stopwatch w;
     SCOPE_EXIT({ total_duration += w.elapsedSeconds(); });
 
     Stopwatch w_proceed_check(CLOCK_MONOTONIC_COARSE);
 
-    for (size_t i = 0; i < col_vector.size(); ++i)
+    for (size_t i = 0; i < col_data.size(); ++i)
     {
         auto row_offset = added_rows;
         ++added_rows;
@@ -221,7 +222,7 @@ void InvertedIndexBuilder<T>::addBlock(
         if (null_map && (*null_map)[i])
             continue;
 
-        index[col_vector[i]].push_back(row_offset);
+        index[col_data[i]].push_back(row_offset);
     }
 }
 
@@ -303,8 +304,22 @@ InvertedIndexViewerPtr InvertedIndexViewer::view(TypeIndex type_id, std::string_
         return std::make_shared<InvertedIndexFileViewer<UInt64>>(path);
     case TypeIndex::Int64:
         return std::make_shared<InvertedIndexFileViewer<Int64>>(path);
+    case TypeIndex::Date:
+        return std::make_shared<InvertedIndexFileViewer<UInt16>>(path);
+    case TypeIndex::DateTime:
+        return std::make_shared<InvertedIndexFileViewer<UInt32>>(path);
+    case TypeIndex::Enum8:
+        return std::make_shared<InvertedIndexFileViewer<Int8>>(path);
+    case TypeIndex::Enum16:
+        return std::make_shared<InvertedIndexFileViewer<Int16>>(path);
+    case TypeIndex::MyDate:
+    case TypeIndex::MyDateTime:
+    case TypeIndex::MyTimeStamp:
+        return std::make_shared<InvertedIndexFileViewer<UInt64>>(path);
+    case TypeIndex::MyTime:
+        return std::make_shared<InvertedIndexFileViewer<Int64>>(path);
     default:
-        throw Exception(ErrorCodes::BAD_ARGUMENTS, "Unsupported type_id {}", magic_enum::enum_name(type_id));
+        throw Exception(ErrorCodes::BAD_ARGUMENTS, "Unsupported type_id: {}", magic_enum::enum_name(type_id));
     }
 }
 
@@ -328,8 +343,22 @@ InvertedIndexViewerPtr InvertedIndexViewer::view(TypeIndex type_id, ReadBuffer &
         return std::make_shared<InvertedIndexMemoryViewer<UInt64>>(buf, index_size);
     case TypeIndex::Int64:
         return std::make_shared<InvertedIndexMemoryViewer<Int64>>(buf, index_size);
+    case TypeIndex::Date:
+        return std::make_shared<InvertedIndexMemoryViewer<UInt16>>(buf, index_size);
+    case TypeIndex::DateTime:
+        return std::make_shared<InvertedIndexMemoryViewer<UInt32>>(buf, index_size);
+    case TypeIndex::Enum8:
+        return std::make_shared<InvertedIndexMemoryViewer<Int8>>(buf, index_size);
+    case TypeIndex::Enum16:
+        return std::make_shared<InvertedIndexMemoryViewer<Int16>>(buf, index_size);
+    case TypeIndex::MyDate:
+    case TypeIndex::MyDateTime:
+    case TypeIndex::MyTimeStamp:
+        return std::make_shared<InvertedIndexMemoryViewer<UInt64>>(buf, index_size);
+    case TypeIndex::MyTime:
+        return std::make_shared<InvertedIndexMemoryViewer<Int64>>(buf, index_size);
     default:
-        throw Exception(ErrorCodes::BAD_ARGUMENTS, "Unsupported type_id {}", magic_enum::enum_name(type_id));
+        throw Exception(ErrorCodes::BAD_ARGUMENTS, "Unsupported type_id: {}", magic_enum::enum_name(type_id));
     }
 }
 

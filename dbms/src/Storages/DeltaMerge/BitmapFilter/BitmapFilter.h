@@ -48,6 +48,8 @@ public:
     // f = f + other
     void append(const BitmapFilter & other);
 
+    bool isAllNotMatch(UInt32 start, UInt32 limit) const;
+
     void runOptimize();
 
     String toDebugString() const;

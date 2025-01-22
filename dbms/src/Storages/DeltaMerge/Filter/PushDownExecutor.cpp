@@ -196,7 +196,8 @@ PushDownExecutorPtr PushDownExecutor::build(
         tracing_logger);
     // build column_value_set
     // FIXME: only push down filters
-    const auto column_value_set = rs_operator ? rs_operator->buildSets(local_index_infos) : nullptr;
+    const auto column_value_set
+        = rs_operator && local_index_infos ? rs_operator->buildSets(local_index_infos) : nullptr;
     // build ann_query_info
     ANNQueryInfoPtr ann_query_info = nullptr;
     if (dag_query->ann_query_info.query_type() != tipb::ANNQueryType::InvalidQueryType)

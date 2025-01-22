@@ -177,7 +177,7 @@ ColumnFileTinyPtr ColumnFileTinyLocalIndexWriter::buildIndexForFile(
             auto compressed_size = write_buf.count();
             auto uncompressed = compressed.getUncompressedBytes();
             auto buf = write_buf.tryGetReadBuffer();
-            options.wbs.log.putPage(index_page_id, 0, buf, compressed_size);
+            options.wbs.log.putPage(index_page_id, 0, buf, compressed_size, {compressed_size});
 
             auto index_pros = indexDefinitionToFileProps(index_builder->index_info, compressed_size, uncompressed);
             index_infos->emplace_back(index_page_id, index_pros);

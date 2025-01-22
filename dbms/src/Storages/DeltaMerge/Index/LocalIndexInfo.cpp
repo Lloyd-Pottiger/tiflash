@@ -16,6 +16,7 @@
 #include <Storages/DeltaMerge/Index/LocalIndexInfo.h>
 #include <Storages/FormatVersion.h>
 #include <Storages/KVStore/Types.h>
+#include <TiDB/Decode/TypeMapping.h>
 #include <TiDB/Schema/TiDB.h>
 #include <fiu.h>
 
@@ -115,7 +116,27 @@ LocalIndexFilePros indexDefinitionToFileProps(
 LocalIndexInfosPtr initLocalIndexInfos(const TiDB::TableInfo & table_info, const LoggerPtr & logger)
 {
     // The same as generate local index infos with no existing_indexes
-    return generateLocalIndexInfos(nullptr, table_info, logger).new_local_index_infos;
+    auto new_index_infos = generateLocalIndexInfos(nullptr, table_info, logger).new_local_index_infos;
+    if (!new_index_infos)
+        new_index_infos = std::make_shared<LocalIndexInfos>();
+    // FIXME: remove this
+    static IndexID index_id = 0;
+    for (const auto & col : table_info.columns)
+    {
+        auto type = getDataTypeByColumnInfo(col);
+        if (type->isValueRepresentedByInteger())
+        {
+            bool is_unsigned = (col.tp == 7 /* MyDateTime */ || col.tp == 10 /* MyDate */
+                || col.tp == 12 /* MyDateTime */);
+            is_unsigned = is_unsigned || col.hasUnsignedFlag();
+            auto definition = std::make_shared<TiDB::InvertedIndexDefinition>(TiDB::InvertedIndexDefinition{
+                .is_signed = !is_unsigned,
+                .type_size = static_cast<UInt8>(type->getSizeOfValueInMemory()),
+            });
+            new_index_infos->emplace_back(++index_id, col.id, definition);
+        }
+    }
+    return new_index_infos;
 }
 
 LocalIndexInfosChangeset generateLocalIndexInfos(

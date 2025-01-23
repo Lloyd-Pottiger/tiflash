@@ -3591,6 +3591,12 @@ BlockInputStreamPtr Segment::getBitmapFilterInputStream(
             dm_context.global_context.getLocalIndexCache());
         auto index_bitmap_filter = index_reader.load();
         bitmap_filter->intersect(*index_bitmap_filter);
+        LOG_DEBUG(
+            segment_snap->log,
+            "Finish load inverted index, column_value_set={}, bitmap_filter={}/{}",
+            executor->column_value_set->toDebugString(),
+            bitmap_filter->count(),
+            bitmap_filter->size());
     }
 
     // If we don't need to read the cacheable columns, release column cache as soon as possible.

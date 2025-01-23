@@ -59,7 +59,7 @@ public:
         , perf_stat()
     {}
 
-    ~DMFileInvertedIndexReader() = default;
+    ~DMFileInvertedIndexReader() { LOG_DEBUG(Logger::get(), "DMFileInvertedIndexReader: {}", perf_stat.toString()); }
 
     // Load inverted index and search results.
     BitmapFilterPtr load();

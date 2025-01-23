@@ -46,11 +46,6 @@ public:
 
     ~SegmentInvertedIndexReader() = default;
 
-    static BitmapFilterPtr tryLoadInvertedIndexBitmapFilter(
-        const SegmentSnapshotPtr & snapshot,
-        const PushDownExecutorPtr & executor,
-        const LocalIndexCachePtr & local_index_cache);
-
     BitmapFilterPtr load();
 };
 

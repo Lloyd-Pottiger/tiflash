@@ -22,6 +22,8 @@
 #include <Storages/SelectQueryInfo.h>
 #include <TiDB/Decode/TypeMapping.h>
 
+#include "common/logger_useful.h"
+
 namespace DB::DM
 {
 PushDownExecutorPtr PushDownExecutor::build(
@@ -198,6 +200,7 @@ PushDownExecutorPtr PushDownExecutor::build(
     // FIXME: only push down filters
     const auto column_value_set
         = rs_operator && local_index_infos ? rs_operator->buildSets(local_index_infos) : nullptr;
+    LOG_DEBUG(Logger::get(), "ColumnValueSet: {}", column_value_set ? column_value_set->toDebugString() : "nullptr");
     // build ann_query_info
     ANNQueryInfoPtr ann_query_info = nullptr;
     if (dag_query->ann_query_info.query_type() != tipb::ANNQueryType::InvalidQueryType)

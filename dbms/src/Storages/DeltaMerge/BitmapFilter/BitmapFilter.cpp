@@ -104,9 +104,16 @@ void BitmapFilter::logicalOr(const BitmapFilter & other)
     {
         return;
     }
-    for (UInt32 i = 0; i < filter.size(); i++)
+    if (other.all_match)
     {
-        filter[i] = filter[i] || other.filter[i];
+        filter.assign(filter.size(), static_cast<UInt8>(true));
+    }
+    else
+    {
+        for (UInt32 i = 0; i < filter.size(); i++)
+        {
+            filter[i] = filter[i] || other.filter[i];
+        }
     }
     all_match = all_match || other.all_match;
 }
